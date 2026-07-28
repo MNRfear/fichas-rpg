@@ -24,7 +24,7 @@ let buffsTempItem = [];
 let telaAnteriorWiki = 'screen-select';
 
 // ==========================================================================
-// BANCO DE DADOS DA WIKI (6 CATEGORIAS E EXAMPLES)
+// BANCO DE DADOS DA WIKI (6 CATEGORIAS)
 // ==========================================================================
 const wikiStatusData = {
   "Dano Contínuo (DoT)": [
@@ -113,7 +113,7 @@ const wikiStatusData = {
 };
 
 // ==========================================================================
-// FUNÇÕES DE NAVEGAÇÃO E WIKI
+// FUNÇÕES DE NAVEGAÇÃO ENTRE TELAS
 // ==========================================================================
 function setModoAcesso(modo) {
   document.getElementById('btn-mode-player').classList.toggle('active', modo === 'player');
@@ -123,8 +123,13 @@ function setModoAcesso(modo) {
 }
 
 function mostrarTela(screenId) {
-  document.querySelectorAll('.screen-container').forEach(el => el.classList.remove('active'));
-  document.getElementById(screenId).classList.add('active');
+  document.querySelectorAll('.screen-container').forEach(el => {
+    el.classList.remove('active');
+  });
+  const target = document.getElementById(screenId);
+  if (target) {
+    target.classList.add('active');
+  }
 }
 
 function abrirWikiDireto() {
@@ -216,7 +221,7 @@ function verDetalhesStatus(categoria, statusNome) {
 }
 
 // ==========================================================================
-// FUNÇÕES DE ENTRADA / FICHA E CONTROLE
+// FUNÇÕES DE ENTRADA / CONTROLE DE DADOS
 // ==========================================================================
 function entrarComoJogador() {
   const nomeID = document.getElementById('input-player-id').value.trim();
@@ -224,22 +229,24 @@ function entrarComoJogador() {
   
   fichaAtualID = nomeID.toLowerCase().replace(/\s+/g, '_');
   modoMestre = false;
+  
+  mostrarTela('screen-sheet'); // Muda a tela IMEDIATAMENTE
+  
   document.getElementById('badge-gm-view').style.display = 'none';
   document.getElementById('label-ficha-ativa').innerText = `Editando Ficha: ${nomeID}`;
   
   carregarOpcoesBuffs();
   renderGridPericias();
   carregarDadosFicha();
-  mostrarTela('screen-sheet');
 }
 
 function entrarComoMestre() {
   const senha = document.getElementById('input-gm-pass').value;
-  if (senha !== "123") return alert("Senha incorreta!"); // Altere a senha se desejar
+  if (senha !== "123") return alert("Senha incorreta!");
   
   modoMestre = true;
+  mostrarTela('screen-gm-dashboard'); // Muda a tela IMEDIATAMENTE
   carregarPainelMestre();
-  mostrarTela('screen-gm-dashboard');
 }
 
 function carregarPainelMestre() {
@@ -266,13 +273,13 @@ function carregarPainelMestre() {
 
 function abrirFichaComoMestre(id) {
   fichaAtualID = id;
+  mostrarTela('screen-sheet');
   document.getElementById('badge-gm-view').style.display = 'inline-block';
   document.getElementById('label-ficha-ativa').innerText = `Ficha do Jogador: ${id}`;
   
   carregarOpcoesBuffs();
   renderGridPericias();
   carregarDadosFicha();
-  mostrarTela('screen-sheet');
 }
 
 function voltarParaSelecao() {
@@ -281,6 +288,7 @@ function voltarParaSelecao() {
 
 function renderGridPericias() {
   const grid = document.getElementById('grid-pericias');
+  if(!grid) return;
   grid.innerHTML = '';
   listaPericiasBase.forEach(p => {
     const key = p.toLowerCase();
@@ -295,6 +303,7 @@ function renderGridPericias() {
 
 function carregarOpcoesBuffs() {
   const select = document.getElementById('buff-alvo');
+  if(!select) return;
   select.innerHTML = `
     <option value="forca">Força</option>
     <option value="agilidade">Agilidade</option>
@@ -325,7 +334,7 @@ function openSubTab(subTabName, event) {
 }
 
 // ==========================================================================
-// CÁLCULOS AUTOMÁTICOS & REGRAS
+// CÁLCULOS E REGRAS
 // ==========================================================================
 function recalcularTudo() {
   const vig = parseInt(document.getElementById('attr-vigor').value) || 0;
@@ -334,7 +343,6 @@ function recalcularTudo() {
   const sor = parseInt(document.getElementById('attr-sorte').value) || 0;
   const int = parseInt(document.getElementById('attr-inteligencia').value) || 0;
 
-  // Fórmulas
   const pvMax = 10 + vig;
   const sanMax = 4 + pre;
   const peMax = 5 + agi + vig;
@@ -359,7 +367,7 @@ function formatarNEX(input) {
 }
 
 // ==========================================================================
-// EXP & MODAL
+// GERENCIADOR DE EXPERIÊNCIA
 // ==========================================================================
 function abrirModalXP() {
   document.getElementById('modal-xp').classList.add('active');
@@ -388,7 +396,7 @@ function confirmarGanhoXP() {
 }
 
 // ==========================================================================
-// SALVAR E CARREGAR (FIREBASE)
+// BANCO DE DADOS (FIREBASE)
 // ==========================================================================
 function salvarDados() {
   if (!fichaAtualID) return;
@@ -413,7 +421,7 @@ function salvarDados() {
     classeAdd: document.getElementById('classe-add').value,
     traco: document.getElementById('traco').value,
     traumas: document.getElementById('traumas').value,
-    
+
     pvAtual: document.getElementById('pv-atual').value,
     pvMax: document.getElementById('pv-max').value,
     sanAtual: document.getElementById('san-atual').value,
@@ -502,7 +510,6 @@ function carregarDadosFicha() {
   });
 }
 
-// INVENTÁRIO & ITENS
 function adicionarBuffItemTemp() {
   const alvo = document.getElementById('buff-alvo').value;
   const val = parseInt(document.getElementById('buff-valor').value) || 0;
@@ -513,11 +520,11 @@ function adicionarBuffItemTemp() {
 
 function renderBuffsTemp() {
   const container = document.getElementById('lista-buffs-temp');
+  if(!container) return;
   container.innerHTML = buffsTempItem.map(b => `<span class="buff-tag">+${b.val} ${b.alvo}</span>`).join(' ');
 }
 
 function criarItem() {
-  // Lógica simples de criar item
   alert("Item adicionado!");
   buffsTempItem = [];
   renderBuffsTemp();
@@ -533,6 +540,7 @@ function adicionarEfeito() {
 
 function criarBlocoAnotacao() {
   const container = document.getElementById('container-anotacoes');
+  if(!container) return;
   container.innerHTML += `
     <div class="bloco-anotacao">
       <input type="text" placeholder="Título...">
