@@ -1,5 +1,5 @@
 /* ==========================================================================
-   1. RESETS & ESTILOS BASE
+   1. RESETS & ESTILOS BASE (TEXTURAS E CORES DE FUNDO)
    ========================================================================== */
 * {
   box-sizing: border-box;
@@ -9,7 +9,7 @@
 }
 
 body {
-  background-color: #121214;
+  background-color: #0d0d0f; /* Fundo mais escuro para dar contraste e textura */
   color: #e1e1e6;
   min-height: 100vh;
   display: flex;
@@ -17,28 +17,46 @@ body {
 }
 
 /* ==========================================================================
-   2. TELA DE SELEÇÃO INICIAL E NAVEGAÇÃO
+   2. CONTROLE DE TELAS (ISOLAMENTO E SEPARAÇÃO DE SEÇÕES)
    ========================================================================== */
 .screen-container {
-  display: none;
+  display: none !important; /* Força o ocultamento das telas inativas */
   width: 100%;
   min-height: 100vh;
   padding: 20px;
 }
 
 .screen-container.active {
-  display: block;
+  display: block !important; /* Exibe apenas a tela ativa */
+}
+
+/* ==========================================================================
+   3. CARDS, CONTAINERS E TEXTURAS VISUAIS (EFEITO ELEVAÇÃO)
+   ========================================================================== */
+.select-box, 
+.gm-card, 
+.ficha-header, 
+.status-section, 
+.card-status, 
+.card-attr, 
+.card-pericia, 
+.wiki-sidebar, 
+.wiki-content, 
+.carga-bar, 
+.item-creator, 
+.item-card, 
+.bloco-anotacao {
+  background: #18181b;
+  border: 1px solid #27272a;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5); /* Sombra que cria o relevo 3D */
+  border-radius: 8px;
 }
 
 .select-box {
   max-width: 450px;
   margin: 80px auto;
-  background: #18181b;
-  border: 1px solid #29292e;
-  border-radius: 8px;
   padding: 30px;
   text-align: center;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
 }
 
 .select-box h1 {
@@ -98,12 +116,13 @@ body {
   width: 100%;
   padding: 12px;
   background: #121214;
-  border: 1px solid #29292e;
+  border: 1px solid #27272a;
   border-radius: 6px;
   color: #fff;
   margin-bottom: 20px;
 }
 
+/* BOTÕES E ELEMENTOS INTERATIVOS */
 .btn-primary {
   background: #ff4655;
   color: #fff;
@@ -127,7 +146,7 @@ body {
 .btn-sub {
   background: #202024;
   color: #a8a8b3;
-  border: 1px solid #29292e;
+  border: 1px solid #27272a;
   padding: 8px 14px;
   border-radius: 6px;
   cursor: pointer;
@@ -135,7 +154,7 @@ body {
 }
 
 .btn-sub:hover {
-  background: #29292e;
+  background: #27272a;
   color: #fff;
 }
 
@@ -160,8 +179,10 @@ body {
   align-items: center;
   background: #18181b;
   padding: 12px 20px;
-  border-bottom: 1px solid #29292e;
+  border-bottom: 1px solid #27272a;
   margin-bottom: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
 }
 
 .ficha-label {
@@ -180,7 +201,7 @@ body {
 }
 
 /* ==========================================================================
-   3. PAINEL DO MESTRE & FICHA
+   4. ESTRUTURA DA FICHA & COMPONENTES
    ========================================================================== */
 .gm-header {
   display: flex;
@@ -188,7 +209,7 @@ body {
   align-items: center;
   margin-bottom: 25px;
   padding-bottom: 10px;
-  border-bottom: 1px solid #29292e;
+  border-bottom: 1px solid #27272a;
 }
 
 .gm-cards-grid {
@@ -198,16 +219,10 @@ body {
 }
 
 .gm-card {
-  background: #18181b;
-  border: 1px solid #29292e;
-  border-radius: 8px;
   padding: 15px;
 }
 
 .ficha-header {
-  background: #18181b;
-  border: 1px solid #29292e;
-  border-radius: 8px;
   padding: 20px;
   margin-bottom: 20px;
 }
@@ -231,7 +246,7 @@ body {
 
 .field input, .field select {
   background: #121214;
-  border: 1px solid #29292e;
+  border: 1px solid #27272a;
   color: #fff;
   padding: 8px;
   border-radius: 4px;
@@ -245,9 +260,6 @@ body {
 }
 
 .status-section {
-  background: #18181b;
-  border: 1px solid #29292e;
-  border-radius: 8px;
   padding: 20px;
   margin-bottom: 20px;
 }
@@ -265,10 +277,7 @@ body {
 }
 
 .card-status {
-  background: #121214;
-  border: 1px solid #29292e;
   padding: 10px;
-  border-radius: 6px;
   text-align: center;
 }
 
@@ -299,7 +308,7 @@ body {
 
 .inline-inputs input { width: 45%; }
 
-/* ABAS DE NAVEGAÇÃO DA FICHA */
+/* ABAS DE NAVEGAÇÃO */
 .tabs {
   display: flex;
   gap: 8px;
@@ -309,7 +318,7 @@ body {
 
 .tab-btn {
   background: #18181b;
-  border: 1px solid #29292e;
+  border: 1px solid #27272a;
   color: #a8a8b3;
   padding: 10px 16px;
   border-radius: 6px;
@@ -327,12 +336,11 @@ body {
 .tab-content.active { display: block; }
 
 .sub-tabs { display: flex; gap: 8px; margin-bottom: 15px; }
-.sub-tab-btn { background: #121214; border: 1px solid #29292e; color: #a8a8b3; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+.sub-tab-btn { background: #121214; border: 1px solid #27272a; color: #a8a8b3; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
 .sub-tab-btn.active { background: #00e1ff; color: #121214; font-weight: bold; }
 .sub-tab-content { display: none; }
 .sub-tab-content.active { display: block; }
 
-/* GRIDS DA FICHA */
 .atributos-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
@@ -341,19 +349,16 @@ body {
 }
 
 .card-attr {
-  background: #18181b;
-  border: 1px solid #29292e;
-  border-radius: 6px;
   padding: 10px;
   text-align: center;
 }
 
 .card-attr label { display: block; font-size: 0.8rem; color: #a8a8b3; margin-bottom: 4px; }
-.card-attr input { width: 100%; text-align: center; background: #121214; border: 1px solid #29292e; color: #fff; padding: 6px; font-weight: bold; border-radius: 4px; }
+.card-attr input { width: 100%; text-align: center; background: #121214; border: 1px solid #27272a; color: #fff; padding: 6px; font-weight: bold; border-radius: 4px; }
 
 .pericias-tracker {
   background: #18181b;
-  border: 1px solid #29292e;
+  border: 1px solid #27272a;
   padding: 12px;
   border-radius: 6px;
   margin-bottom: 20px;
@@ -371,10 +376,7 @@ body {
 }
 
 .card-pericia {
-  background: #18181b;
-  border: 1px solid #29292e;
   padding: 8px 12px;
-  border-radius: 6px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -383,7 +385,7 @@ body {
 .card-pericia input {
   width: 50px;
   background: #121214;
-  border: 1px solid #29292e;
+  border: 1px solid #27272a;
   color: #fff;
   text-align: center;
   padding: 4px;
@@ -391,7 +393,7 @@ body {
 
 .deslocamento-panel {
   background: #18181b;
-  border: 1px solid #29292e;
+  border: 1px solid #27272a;
   padding: 12px;
   border-radius: 6px;
   display: flex;
@@ -401,7 +403,7 @@ body {
 
 .deslocamento-panel input {
   background: #121214;
-  border: 1px solid #29292e;
+  border: 1px solid #27272a;
   color: #00e1ff;
   padding: 6px;
   width: 80px;
@@ -411,57 +413,56 @@ body {
 
 .bloco-card { margin-bottom: 15px; }
 .bloco-card label { display: block; color: #a8a8b3; margin-bottom: 6px; }
-.bloco-card textarea, textarea { width: 100%; background: #18181b; border: 1px solid #29292e; color: #fff; padding: 10px; border-radius: 6px; resize: vertical; }
+.bloco-card textarea, textarea { width: 100%; background: #18181b; border: 1px solid #27272a; color: #fff; padding: 10px; border-radius: 6px; resize: vertical; }
 
 .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 @media (max-width: 768px) { .grid-2col { grid-template-columns: 1fr; } }
 
 /* INVENTÁRIO */
-.carga-bar { background: #18181b; border: 1px solid #29292e; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+.carga-bar { padding: 15px; margin-bottom: 20px; }
 .carga-extra-text { color: #00ff88; font-size: 0.9rem; }
 .alerta-erro { color: #ff4655; display: block; margin-top: 5px; }
 
-.item-creator { background: #18181b; border: 1px solid #29292e; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+.item-creator { padding: 15px; margin-bottom: 20px; }
 .creator-fields { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-.creator-fields input { background: #121214; border: 1px solid #29292e; color: #fff; padding: 8px; border-radius: 4px; }
+.creator-fields input { background: #121214; border: 1px solid #27272a; color: #fff; padding: 8px; border-radius: 4px; }
 
 .checkbox-label { display: flex; align-items: center; gap: 5px; color: #a8a8b3; font-size: 0.85rem; }
 
 .buffs-builder { margin: 10px 0; }
 .buff-input-group { display: flex; gap: 8px; margin-top: 6px; }
-.buff-input-group select { background: #121214; border: 1px solid #29292e; color: #fff; padding: 6px; }
+.buff-input-group select { background: #121214; border: 1px solid #27272a; color: #fff; padding: 6px; }
 .buffs-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .buff-tag { background: #202024; border: 1px solid #00e1ff; color: #00e1ff; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
 
 .image-uploader { margin-bottom: 15px; }
 .image-uploader label { display: block; font-size: 0.8rem; color: #a8a8b3; margin-bottom: 4px; }
 
-.item-card { background: #18181b; border: 1px solid #29292e; border-radius: 6px; padding: 12px; margin-bottom: 10px; display: flex; gap: 12px; align-items: center; }
-.item-card img { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #29292e; }
+.item-card { padding: 12px; margin-bottom: 10px; display: flex; gap: 12px; align-items: center; }
+.item-card img { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #27272a; }
 .item-info { flex: 1; }
-.item-actions { display: flex; gap: 6px; }
 
-/* EFEITOS DE STATUS & ANOTAÇÕES */
+/* EFEITOS & ANOTAÇÕES */
 .add-effect { display: flex; gap: 10px; margin-bottom: 15px; }
-.add-effect input, .add-effect select { background: #18181b; border: 1px solid #29292e; color: #fff; padding: 8px; border-radius: 4px; }
+.add-effect input, .add-effect select { background: #18181b; border: 1px solid #27272a; color: #fff; padding: 8px; border-radius: 4px; }
 .effect-list { list-style: none; }
-.effect-item { background: #18181b; border: 1px solid #29292e; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+.effect-item { background: #18181b; border: 1px solid #27272a; padding: 10px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
 
 .anotacoes-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
 .anotacoes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
-.bloco-anotacao { background: #18181b; border: 1px solid #29292e; padding: 12px; border-radius: 6px; }
-.bloco-anotacao input { width: 100%; background: transparent; border: none; border-bottom: 1px solid #29292e; color: #00e1ff; font-weight: bold; padding-bottom: 4px; margin-bottom: 8px; }
+.bloco-anotacao { padding: 12px; }
+.bloco-anotacao input { width: 100%; background: transparent; border: none; border-bottom: 1px solid #27272a; color: #00e1ff; font-weight: bold; padding-bottom: 4px; margin-bottom: 8px; }
 
 /* MODAL */
-.modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); justify-content: center; align-items: center; z-index: 1000; }
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); justify-content: center; align-items: center; z-index: 1000; }
 .modal-overlay.active { display: flex; }
-.modal-box { background: #18181b; border: 1px solid #29292e; padding: 25px; border-radius: 8px; width: 320px; text-align: center; }
-.modal-box input { width: 100%; padding: 10px; background: #121214; border: 1px solid #29292e; color: #fff; margin: 15px 0; border-radius: 4px; }
+.modal-box { background: #18181b; border: 1px solid #27272a; padding: 25px; border-radius: 8px; width: 320px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+.modal-box input { width: 100%; padding: 10px; background: #121214; border: 1px solid #27272a; color: #fff; margin: 15px 0; border-radius: 4px; }
 .modal-quick-buttons { display: flex; gap: 6px; justify-content: center; margin-bottom: 15px; }
 .modal-actions { display: flex; gap: 10px; justify-content: center; }
 
 /* ==========================================================================
-   4. ESTILOS DA WIKI DO SISTEMA
+   5. WIKI DO SISTEMA
    ========================================================================== */
 .btn-wiki-global {
   width: 100%;
@@ -486,7 +487,6 @@ body {
   gap: 20px;
   max-width: 1400px;
   margin: 20px auto;
-  padding: 0 15px;
 }
 
 @media (max-width: 850px) {
@@ -495,9 +495,6 @@ body {
 
 .wiki-sidebar {
   flex: 0 0 320px;
-  background: #18181b;
-  border: 1px solid #29292e;
-  border-radius: 8px;
   padding: 15px;
   height: fit-content;
 }
@@ -512,7 +509,7 @@ body {
 
 .category-accordion {
   margin-bottom: 8px;
-  border: 1px solid #29292e;
+  border: 1px solid #27272a;
   border-radius: 6px;
   overflow: hidden;
 }
@@ -530,7 +527,7 @@ body {
 }
 
 .category-header:hover {
-  background: #29292e;
+  background: #27272a;
   color: #00e1ff;
 }
 
@@ -561,7 +558,7 @@ body {
   transition: 0.2s;
 }
 
-.wiki-status-item:hover, .wiki-status-item.active {
+.wiki-status-item:hover {
   background: #202024;
   color: #00ff88;
   padding-left: 20px;
@@ -569,9 +566,6 @@ body {
 
 .wiki-content {
   flex: 1;
-  background: #18181b;
-  border: 1px solid #29292e;
-  border-radius: 8px;
   padding: 25px;
 }
 
@@ -603,7 +597,7 @@ body {
 }
 
 .wiki-table th, .wiki-table td {
-  border: 1px solid #29292e;
+  border: 1px solid #27272a;
   padding: 10px;
   text-align: left;
 }
