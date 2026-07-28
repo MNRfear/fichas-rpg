@@ -56,9 +56,17 @@
       <span class="badge-gm" id="badge-gm-view" style="display:none;">MODO MESTRE</span>
     </div>
 
-    <!-- CABEÇALHO DA FICHA -->
+<!-- CABEÇALHO DA FICHA -->
     <header class="ficha-header">
       <div class="header-grid">
+        <div class="field field-medium">
+          <label>Classe Base:</label>
+          <select id="classe-base" onchange="recalcularTudo()">
+            <option value="Místico">Místico</option>
+            <option value="Especialista">Especialista</option>
+            <option value="Combatente">Combatente</option>
+          </select>
+        </div>
         <div class="field field-small">
           <label>Nível:</label>
           <input type="number" id="nivel" value="1" onchange="recalcularTudo()">
@@ -70,14 +78,6 @@
         <div class="field field-small">
           <label>Idade:</label>
           <input type="number" id="idade" value="18" onchange="salvarDados()">
-        </div>
-        <div class="field field-medium">
-          <label>Classe Base:</label>
-          <select id="classe-base" onchange="recalcularTudo()">
-            <option value="Místico">Místico</option>
-            <option value="Especialista">Especialista</option>
-            <option value="Combatente">Combatente</option>
-          </select>
         </div>
         <div class="field field-medium">
           <label>Nome:</label>
