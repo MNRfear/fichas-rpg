@@ -75,12 +75,12 @@
             <h3>🧮 Matemática dos Atributos</h3>
             <p>Cada atributo determina seus modificadores de dados e pontos de vida/recursos básicos:</p>
             <ul>
-              <li><strong>Pontos de Vida (PV):</strong> $10 + \text{Vigor} + \text{Bônus de Classe}$</li>
-              <li><strong>Sanidade (SAN):</strong> $4 + \text{Presença} + \text{Bônus de Classe}$</li>
-              <li><strong>Pontos de Esforço (PE):</strong> $5 + \text{Agilidade} + \text{Vigor} + \text{Bônus de Classe}$</li>
-              <li><strong>Mana (MA):</strong> $\text{Vigor} + \text{Presença} + \text{Sorte} + \text{Inteligência} + \text{Bônus de Classe}$</li>
-              <li><strong>Evasão (EVA):</strong> $\text{Agilidade} + \text{Bônus de Classe}$</li>
-              <li><strong>Defesa (DEF):</strong> $\lfloor\text{Vigor} / 2\rfloor + \text{Bônus de Classe}$</li>
+              <li><strong>Pontos de Vida (PV):</strong> 10 + Vigor + Bônus de Classe</li>
+              <li><strong>Sanidade (SAN):</strong> 4 + Presença + Bônus de Classe</li>
+              <li><strong>Pontos de Esforço (PE):</strong> 5 + Agilidade + Vigor + Bônus de Classe</li>
+              <li><strong>Mana (MA):</strong> Vigor + Presença + Sorte + Inteligência + Bônus de Classe</li>
+              <li><strong>Evasão (EVA):</strong> Agilidade + Bônus de Classe</li>
+              <li><strong>Defesa (DEF):</strong> (Vigor / 2) + Bônus de Classe</li>
             </ul>
           </div>
 
@@ -105,16 +105,13 @@
         </div>
 
         <!-- CONTAINER ONDE APARECEM OS DETALHES DO STATUS SELECIONADO -->
-        <div id="wiki-status-detail" style="display: none;">
-          <!-- Detalhes do status vão aparecer aqui ao clicar no menu lateral -->
-        </div>
+        <div id="wiki-status-detail" style="display: none;"></div>
       </main>
     </div>
   </div>
 
   <!-- 4. TELA DA FICHA DO JOGADOR -->
   <div id="screen-sheet" class="screen-container">
-    
     <div class="top-nav-bar">
       <button type="button" class="btn-sub" onclick="voltarParaSelecao()">← Trocar Ficha / Sair</button>
       <span class="ficha-label" id="label-ficha-ativa">Editando Ficha: Nenhuma</span>
@@ -378,7 +375,6 @@
         <div class="anotacoes-grid" id="container-anotacoes"></div>
       </div>
     </main>
-
   </div>
 
   <!-- MODAL DE XP -->
