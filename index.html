@@ -4,8 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sistema de Fichas RPG</title>
-  <!-- O ?v=99 força o navegador a carregar o estilo novo sem pegar cache velho -->
-  <link rel="stylesheet" href="style.css?v=99">
+  <link rel="stylesheet" href="style.css?v=100">
+
+  <!-- SCRIPTS DO FIREBASE (OBRIGATÓRIOS PARA CORRIGIR O ERRO) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
 
@@ -16,22 +19,22 @@
       <p>Selecione seu modo de acesso ao banco de dados</p>
 
       <div class="mode-toggle">
-        <button type="button" class="btn-mode active" onclick="switchMode('jogador')">Jogador</button>
-        <button type="button" class="btn-mode" onclick="switchMode('mestre')">Mestre</button>
+        <button type="button" id="btn-mode-player" class="btn-mode active" onclick="setModoAcesso('player')">Jogador</button>
+        <button type="button" id="btn-mode-gm" class="btn-mode" onclick="setModoAcesso('gm')">Mestre</button>
       </div>
 
       <!-- PAINEL JOGADOR -->
-      <div id="panel-jogador" class="access-panel active">
-        <label for="player-char-name">Nome do Personagem / ID:</label>
-        <input type="text" id="player-char-name" placeholder="Ex: Morpheus, Ronaldo, etc">
-        <button type="button" class="btn-primary btn-large" onclick="carregarFichaJogador()">Carregar / Criar Ficha</button>
+      <div id="panel-player" class="access-panel active">
+        <label for="input-player-id">Nome do Personagem / ID:</label>
+        <input type="text" id="input-player-id" placeholder="Ex: Morpheus, Ronaldo, etc">
+        <button type="button" class="btn-primary btn-large" onclick="entrarComoJogador()">Carregar / Criar Ficha</button>
       </div>
 
       <!-- PAINEL MESTRE -->
-      <div id="panel-mestre" class="access-panel">
-        <label for="gm-pass">Senha do Mestre:</label>
-        <input type="password" id="gm-pass" placeholder="Digite a senha do Mestre">
-        <button type="button" class="btn-primary btn-large" onclick="acessarPainelMestre()">Acessar Painel do Mestre</button>
+      <div id="panel-gm" class="access-panel">
+        <label for="input-gm-pass">Senha do Mestre:</label>
+        <input type="password" id="input-gm-pass" placeholder="Digite a senha do Mestre">
+        <button type="button" class="btn-primary btn-large" onclick="entrarComoMestre()">Acessar Painel do Mestre</button>
       </div>
     </div>
   </div>
@@ -40,20 +43,20 @@
   <div id="screen-gm-dashboard" class="screen-container">
     <div class="gm-header">
       <h2>Painel de Controle do Mestre</h2>
-      <button type="button" class="btn-danger" onclick="sairParaSelecao()">Sair</button>
+      <button type="button" class="btn-danger" onclick="voltarParaSelecao()">Sair</button>
     </div>
-    <div class="gm-cards-grid" id="gm-cards-container">
+    <div class="gm-cards-grid" id="gm-cards-list">
       <!-- Cards dos jogadores serão injetados aqui via JS -->
     </div>
   </div>
 
   <!-- 3. TELA DA FICHA DO JOGADOR -->
-  <div id="screen-player-sheet" class="screen-container">
+  <div id="screen-sheet" class="screen-container">
     
     <div class="top-nav-bar">
-      <button type="button" class="btn-sub" onclick="sairParaSelecao()">← Trocar Ficha / Sair</button>
-      <span class="ficha-label" id="current-sheet-title">Editando Ficha: Nenhuma</span>
-      <button type="button" class="btn-primary" id="btn-gm-mode-toggle" style="display:none;">MODO MESTRE</button>
+      <button type="button" class="btn-sub" onclick="voltarParaSelecao()">← Trocar Ficha / Sair</button>
+      <span class="ficha-label" id="label-ficha-ativa">Editando Ficha: Nenhuma</span>
+      <span class="badge-gm" id="badge-gm-view" style="display:none;">MODO MESTRE</span>
     </div>
 
     <!-- CABEÇALHO DA FICHA -->
@@ -61,19 +64,19 @@
       <div class="header-grid">
         <div class="field field-small">
           <label>Nível:</label>
-          <input type="number" id="char-level" value="1">
+          <input type="number" id="nivel" value="1" onchange="recalcularTudo()">
         </div>
         <div class="field field-small">
           <label>NEX:</label>
-          <input type="text" id="char-nex" value="20%">
+          <input type="text" id="nex" value="20%" onchange="formatarNEX(this)">
         </div>
         <div class="field field-small">
           <label>Idade:</label>
-          <input type="number" id="char-age" value="18">
+          <input type="number" id="idade" value="18" onchange="salvarDados()">
         </div>
         <div class="field field-medium">
           <label>Classe Base:</label>
-          <select id="char-class">
+          <select id="classe-base" onchange="recalcularTudo()">
             <option value="Místico">Místico</option>
             <option value="Especialista">Especialista</option>
             <option value="Combatente">Combatente</option>
@@ -81,42 +84,42 @@
         </div>
         <div class="field field-medium">
           <label>Nome:</label>
-          <input type="text" id="char-name" value="Morpheus">
+          <input type="text" id="nome" value="Morpheus" onchange="salvarDados()">
         </div>
         <div class="field field-medium">
           <label>Exp:</label>
           <div class="xp-field-group">
-            <input type="text" id="char-xp" value="0 / 100" readonly>
-            <button type="button" class="btn-sub" onclick="openXpModal()">+ XP</button>
+            <input type="text" id="exp-display" value="0 / 100" readonly>
+            <button type="button" class="btn-sub" onclick="abrirModalXP()">+ XP</button>
           </div>
         </div>
         <div class="field field-medium">
           <label>Origem:</label>
-          <input type="text" id="char-origin" value="Músico Fracassado">
+          <input type="text" id="origem" value="Músico Fracassado" onchange="salvarDados()">
         </div>
         <div class="field field-medium">
           <label>Raça:</label>
-          <input type="text" id="char-race" value="Revenant">
+          <input type="text" id="raca" value="Revenant" onchange="salvarDados()">
         </div>
         <div class="field field-small">
           <label>Gênero:</label>
-          <input type="text" id="char-gender" value="Masculino">
+          <input type="text" id="genero" value="Masculino" onchange="salvarDados()">
         </div>
         <div class="field field-small">
           <label>Sexualidade:</label>
-          <input type="text" id="char-sexuality" value="Hétero">
+          <input type="text" id="sexualidade" value="Hétero" onchange="salvarDados()">
         </div>
         <div class="field field-full">
           <label>Classe Adicional:</label>
-          <input type="text" id="char-add-class" value="Necromante Lvl:1">
+          <input type="text" id="classe-add" value="Necromante Lvl:1" onchange="salvarDados()">
         </div>
         <div class="field field-full">
           <label>Traço:</label>
-          <input type="text" id="char-trait" value="Mente Aberta, Desapegado e Colecionador de Tranqueiras">
+          <input type="text" id="traco" value="Mente Aberta" onchange="salvarDados()">
         </div>
         <div class="field field-full">
           <label>Traumas / Medos:</label>
-          <input type="text" id="char-fears" value="Voltar à Vida">
+          <input type="text" id="traumas" value="Voltar à Vida" onchange="salvarDados()">
         </div>
       </div>
     </header>
@@ -128,65 +131,186 @@
         <div class="card-status">
           <label>Vida (PV)</label>
           <div class="inline-inputs">
-            <input type="number" id="pv-cur" value="22"> / <input type="number" id="pv-max" value="22">
+            <input type="number" id="pv-atual" value="22" onchange="salvarDados()"> / <input type="number" id="pv-max" value="22" readonly>
           </div>
         </div>
         <div class="card-status">
           <label>Sanidade (SAN)</label>
           <div class="inline-inputs">
-            <input type="number" id="san-cur" value="18"> / <input type="number" id="san-max" value="18">
+            <input type="number" id="san-atual" value="18" onchange="salvarDados()"> / <input type="number" id="san-max" value="18" readonly>
           </div>
         </div>
         <div class="card-status">
           <label>Esforço (PE)</label>
           <div class="inline-inputs">
-            <input type="number" id="pe-cur" value="27"> / <input type="number" id="pe-max" value="31">
+            <input type="number" id="pe-atual" value="27" onchange="salvarDados()"> / <input type="number" id="pe-max" value="31" readonly>
           </div>
         </div>
         <div class="card-status">
           <label>Mana (MA)</label>
           <div class="inline-inputs">
-            <input type="number" id="ma-cur" value="49"> / <input type="number" id="ma-max" value="49">
+            <input type="number" id="ma-atual" value="49" onchange="salvarDados()"> / <input type="number" id="ma-max" value="49" readonly>
           </div>
         </div>
         <div class="card-status">
           <label>Defesa (DEF)</label>
-          <input type="number" id="def-val" value="6">
+          <input type="number" id="def-val" value="6" readonly>
         </div>
         <div class="card-status">
           <label>Evasão (EVA)</label>
-          <input type="number" id="eva-val" value="10">
+          <input type="number" id="eva-val" value="10" readonly>
         </div>
         <div class="card-status">
           <label>Tp:</label>
-          <input type="number" id="tp-val" value="0">
+          <input type="number" id="tp-val" value="0" onchange="salvarDados()">
         </div>
       </div>
     </section>
 
     <!-- NAVEGAÇÃO POR ABAS -->
     <nav class="tabs">
-      <button type="button" class="tab-btn active" onclick="switchTab('tab-atributos')">Atributos & Perícias</button>
-      <button type="button" class="tab-btn" onclick="switchTab('tab-raridade')">Habilidades de Raridade</button>
-      <button type="button" class="tab-btn" onclick="switchTab('tab-skills')">Skills, Feitiços & Rituais</button>
-      <button type="button" class="tab-btn" onclick="switchTab('tab-inventario')">Inventário & Equipamentos</button>
-      <button type="button" class="tab-btn" onclick="switchTab('tab-efeitos')">Efeitos de Status</button>
-      <button type="button" class="tab-btn" onclick="switchTab('tab-anotacoes')">Blocos de Anotações</button>
+      <button type="button" class="tab-btn active" onclick="openTab('atributos', event)">Atributos & Perícias</button>
+      <button type="button" class="tab-btn" onclick="openTab('raridade', event)">Habilidades de Raridade</button>
+      <button type="button" class="tab-btn" onclick="openTab('skills', event)">Skills, Feitiços & Rituais</button>
+      <button type="button" class="tab-btn" onclick="openTab('inventario', event)">Inventário & Equipamentos</button>
+      <button type="button" class="tab-btn" onclick="openTab('efeitos', event)">Efeitos de Status</button>
+      <button type="button" class="tab-btn" onclick="openTab('anotacoes', event)">Blocos de Anotações</button>
     </nav>
 
     <main class="container">
-      <!-- CONTEÚDO DA ABA ATRIBUTOS -->
+      <!-- ABA ATRIBUTOS & PERÍCIAS -->
       <div id="tab-atributos" class="tab-content active">
         <h2>{ ATRIBUTOS }</h2>
         <div class="atributos-grid">
-          <div class="card-attr"><label>Força</label><input type="number" value="12"></div>
-          <div class="card-attr"><label>Agilidade</label><input type="number" value="10"></div>
-          <div class="card-attr"><label>Vigor</label><input type="number" value="12"></div>
-          <div class="card-attr"><label>Inteligência</label><input type="number" value="13"></div>
-          <div class="card-attr"><label>Presença</label><input type="number" value="14"></div>
-          <div class="card-attr"><label>Carisma</label><input type="number" value="13"></div>
-          <div class="card-attr"><label>Sorte</label><input type="number" value="10"></div>
+          <div class="card-attr"><label>Força</label><input type="number" id="attr-forca" value="10" onchange="recalcularTudo()"></div>
+          <div class="card-attr"><label>Agilidade</label><input type="number" id="attr-agilidade" value="10" onchange="recalcularTudo()"></div>
+          <div class="card-attr"><label>Vigor</label><input type="number" id="attr-vigor" value="10" onchange="recalcularTudo()"></div>
+          <div class="card-attr"><label>Inteligência</label><input type="number" id="attr-inteligencia" value="10" onchange="recalcularTudo()"></div>
+          <div class="card-attr"><label>Presença</label><input type="number" id="attr-presenca" value="10" onchange="recalcularTudo()"></div>
+          <div class="card-attr"><label>Carisma</label><input type="number" id="attr-carisma" value="10" onchange="recalcularTudo()"></div>
+          <div class="card-attr"><label>Sorte</label><input type="number" id="attr-sorte" value="10" onchange="recalcularTudo()"></div>
         </div>
+
+        <div class="pericias-tracker">
+          <div class="tracker-item">Pontos Livres: <strong id="pts-livres-restantes" class="highlight">0</strong> / <span id="pts-livres-totais">0</span></div>
+          <div class="tracker-item" id="tracker-classe-container" style="display:none;">
+            <span id="label-pts-classe">Pontos da Classe:</span> 
+            <strong id="pts-classe-restantes" class="highlight">0</strong> / <span id="pts-classe-totais">0</span>
+          </div>
+        </div>
+
+        <h2>{ PERÍCIAS }</h2>
+        <div class="pericias-grid" id="grid-pericias"></div>
+
+        <div class="deslocamento-panel">
+          <span class="deslocamento-label">Deslocamento:</span>
+          <input type="text" id="deslocamento-val" value="5m" readonly>
+        </div>
+      </div>
+
+      <!-- ABA HABILIDADES DE RARIDADE -->
+      <div id="tab-raridade" class="tab-content">
+        <h2>{ HABILIDADES DE RARIDADE }</h2>
+        <div class="bloco-card"><label>Únicas</label><textarea id="hab-unicas" rows="3" onchange="salvarDados()"></textarea></div>
+        <div class="bloco-card"><label>Lendárias</label><textarea id="hab-lendarias" rows="3" onchange="salvarDados()"></textarea></div>
+        <div class="bloco-card"><label>Épicas</label><textarea id="hab-epicas" rows="3" onchange="salvarDados()"></textarea></div>
+        <div class="bloco-card"><label>Raras</label><textarea id="hab-raras" rows="3" onchange="salvarDados()"></textarea></div>
+        <div class="bloco-card"><label>Incomuns</label><textarea id="hab-incomuns" rows="3" onchange="salvarDados()"></textarea></div>
+        <div class="bloco-card"><label>Comuns</label><textarea id="hab-comuns" rows="3" onchange="salvarDados()"></textarea></div>
+      </div>
+
+      <!-- ABA SKILLS, FEITIÇOS E RITUAIS -->
+      <div id="tab-skills" class="tab-content">
+        <div class="sub-tabs">
+          <button type="button" class="sub-tab-btn active" onclick="openSubTab('skills-sub', event)">Skills</button>
+          <button type="button" class="sub-tab-btn" onclick="openSubTab('feiticos-sub', event)">Feitiços</button>
+          <button type="button" class="sub-tab-btn" onclick="openSubTab('rituais-sub', event)">Rituais</button>
+        </div>
+
+        <div id="subtab-skills-sub" class="sub-tab-content active">
+          <textarea id="skills-texto" rows="12" placeholder="Digite suas skills..." onchange="salvarDados()"></textarea>
+        </div>
+        <div id="subtab-feiticos-sub" class="sub-tab-content">
+          <textarea id="feiticos-texto" rows="12" placeholder="Digite seus feitiços..." onchange="salvarDados()"></textarea>
+        </div>
+        <div id="subtab-rituais-sub" class="sub-tab-content">
+          <textarea id="rituais-texto" rows="12" placeholder="Digite seus rituais..." onchange="salvarDados()"></textarea>
+        </div>
+      </div>
+
+      <!-- ABA INVENTÁRIO -->
+      <div id="tab-inventario" class="tab-content">
+        <div class="carga-bar" id="carga-bar-container">
+          <h3>Carga Atual: <span id="carga-atual">0</span> / <span id="carga-base-max">0</span> Kg <span class="carga-extra-text" id="carga-extra-display">+ 0 Kg</span></h3>
+          <small id="alerta-mochila-excesso" class="alerta-erro" style="display:none;">⚠ Peso total das mochilas equipadas excede sua capacidade de Carga Base!</small>
+        </div>
+
+        <div class="item-creator">
+          <h3>Criar Novo Item</h3>
+          <div class="creator-fields">
+            <input type="text" id="item-nome" placeholder="Nome do Item">
+            <input type="number" id="item-qtd" value="1" placeholder="Qtd">
+            <input type="number" id="item-carga" value="1" step="0.5" placeholder="Carga (Kg)">
+            <label class="checkbox-label">
+              <input type="checkbox" id="item-is-mochila"> É Mochila/Bolsa?
+            </label>
+            <input type="number" id="item-bonus-carga" value="0" placeholder="+Carga Extra">
+          </div>
+          
+          <textarea id="item-desc" rows="2" placeholder="Descrição do item..."></textarea>
+
+          <div class="buffs-builder">
+            <label>Adicionar Buff ao Item:</label>
+            <div class="buff-input-group">
+              <select id="buff-alvo"></select>
+              <input type="number" id="buff-valor" value="1" style="width:70px;">
+              <button type="button" class="btn-sub" onclick="adicionarBuffItemTemp()">+ Buff</button>
+            </div>
+            <div class="buffs-tags" id="lista-buffs-temp"></div>
+          </div>
+
+          <div class="image-uploader">
+            <label>Imagem do Item:</label>
+            <input type="file" id="item-img-input" accept="image/*">
+          </div>
+
+          <button type="button" class="btn-primary" onclick="criarItem()">Criar Item</button>
+        </div>
+
+        <div class="grid-2col">
+          <div>
+            <h2>{ INVENTÁRIO (MOCHILA) }</h2>
+            <div id="lista-inventario"></div>
+          </div>
+          <div>
+            <h2>{ EQUIPADOS / EM USO }</h2>
+            <div id="lista-equipamentos"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABA EFEITOS -->
+      <div id="tab-efeitos" class="tab-content">
+        <h2>{ EFEITOS DE STATUS }</h2>
+        <div class="add-effect">
+          <input type="text" id="effect-name" placeholder="Nome do Efeito / Condição">
+          <select id="effect-category">
+            <option value="Buff">Buff</option>
+            <option value="Debuff">Debuff</option>
+            <option value="Condição">Condição</option>
+          </select>
+          <button type="button" class="btn-primary" onclick="adicionarEfeito()">Adicionar Efeito</button>
+        </div>
+        <ul class="effect-list" id="lista-efeitos"></ul>
+      </div>
+
+      <!-- ABA ANOTAÇÕES -->
+      <div id="tab-anotacoes" class="tab-content">
+        <div class="anotacoes-header">
+          <h2>{ BLOCOS DE ANOTAÇÕES }</h2>
+          <button type="button" class="btn-primary" onclick="criarBlocoAnotacao()">+ Novo Bloco</button>
+        </div>
+        <div class="anotacoes-grid" id="container-anotacoes"></div>
       </div>
     </main>
 
@@ -198,13 +322,13 @@
       <h3>Gerenciador de Experiência</h3>
       <input type="number" id="xp-input-val" placeholder="Quantidade de XP">
       <div class="modal-quick-buttons">
-        <button type="button" class="btn-sub" onclick="addXpVal(10)">+10</button>
-        <button type="button" class="btn-sub" onclick="addXpVal(50)">+50</button>
-        <button type="button" class="btn-sub" onclick="addXpVal(100)">+100</button>
+        <button type="button" class="btn-sub" onclick="somarXPInput(10)">+10</button>
+        <button type="button" class="btn-sub" onclick="somarXPInput(50)">+50</button>
+        <button type="button" class="btn-sub" onclick="somarXPInput(100)">+100</button>
       </div>
       <div class="modal-actions">
-        <button type="button" class="btn-primary" onclick="confirmAddXp()">Adicionar</button>
-        <button type="button" class="btn-danger" onclick="closeXpModal()">Cancelar</button>
+        <button type="button" class="btn-primary" onclick="confirmarGanhoXP()">Adicionar</button>
+        <button type="button" class="btn-danger" onclick="fecharModalXP()">Cancelar</button>
       </div>
     </div>
   </div>
