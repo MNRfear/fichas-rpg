@@ -57,8 +57,21 @@ body { background-color: #121214; color: #e1e1e6; padding-bottom: 50px; }
 .field input, .field select { background: #202024; border: 1px solid #29292e; color: #fff; padding: 8px; border-radius: 4px; font-size: 0.95rem; }
 
 /* LARGURAS PROPORCIONAIS DOS CAMPOS DO CABEÇALHO */
-.field-small { flex: 1 1 70px; min-width: 70px; max-width: 100px; }
-.field-medium { flex: 2 1 140px; min-width: 140px; }
+.header-grid { 
+  display: flex; 
+  flex-wrap: wrap; 
+  gap: 12px; 
+  align-items: flex-end; /* Alinha os labels e inputs na base para nao quebrar a linha */
+}
+
+.field { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 4px; 
+}
+
+.field-small { flex: 1 1 80px; min-width: 70px; max-width: 110px; }
+.field-medium { flex: 2 1 150px; min-width: 130px; }
 .field-large { flex: 3 1 220px; min-width: 200px; }
 .field-full { flex: 1 1 100%; width: 100%; }
 
