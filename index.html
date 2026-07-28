@@ -58,14 +58,6 @@
 
     <!-- CABEÇALHO DA FICHA -->
     <header class="ficha-header">
-      <div class="field field-medium">
-          <label>Classe Base:</label>
-          <select id="classe-base" onchange="recalcularTudo()">
-            <option value="Místico">Místico</option>
-            <option value="Especialista">Especialista</option>
-            <option value="Combatente">Combatente</option>
-          </select>
-        </div>
       <div class="header-grid">
         <div class="field field-small">
           <label>Nível:</label>
@@ -73,11 +65,19 @@
         </div>
         <div class="field field-small">
           <label>NEX:</label>
-          <input type="text" id="nex" value="0%" onchange="formatarNEX(this)">
+          <input type="text" id="nex" value="20%" onchange="formatarNEX(this)">
         </div>
         <div class="field field-small">
           <label>Idade:</label>
-          <input type="text" id="idade" value="18" onchange="salvarDados()">
+          <input type="number" id="idade" value="18" onchange="salvarDados()">
+        </div>
+        <div class="field field-medium">
+          <label>Classe Base:</label>
+          <select id="classe-base" onchange="recalcularTudo()">
+            <option value="Místico">Místico</option>
+            <option value="Especialista">Especialista</option>
+            <option value="Combatente">Combatente</option>
+          </select>
         </div>
         <div class="field field-medium">
           <label>Nome:</label>
