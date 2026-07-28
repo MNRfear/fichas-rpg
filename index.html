@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sistema de Fichas RPG & Wiki</title>
-  <link rel="stylesheet" href="style.css?v=101">
+  <title>Sistema de Fichas RPG</title>
+  <link rel="stylesheet" href="style.css?v=100">
+
 </head>
 <body>
 
@@ -32,8 +33,6 @@
         <input type="password" id="input-gm-pass" placeholder="Digite a senha do Mestre">
         <button type="button" class="btn-primary btn-large" onclick="entrarComoMestre()">Acessar Painel do Mestre</button>
       </div>
-
-      <button type="button" class="btn-wiki-global" onclick="abrirWikiDireto()">📚 Consultar Wiki do Sistema</button>
     </div>
   </div>
 
@@ -41,97 +40,25 @@
   <div id="screen-gm-dashboard" class="screen-container">
     <div class="gm-header">
       <h2>Painel de Controle do Mestre</h2>
-      <div>
-        <button type="button" class="btn-sub" onclick="abrirWikiDireto()">📚 Wiki</button>
-        <button type="button" class="btn-danger" onclick="voltarParaSelecao()">Sair</button>
-      </div>
+      <button type="button" class="btn-danger" onclick="voltarParaSelecao()">Sair</button>
     </div>
-    <div class="gm-cards-grid" id="gm-cards-list"></div>
-  </div>
-
-  <!-- 3. TELA DA WIKI DO SISTEMA -->
-  <div id="screen-wiki" class="screen-container">
-    <div class="top-nav-bar">
-      <button type="button" class="btn-sub" onclick="voltarDaWiki()">← Voltar</button>
-      <span class="ficha-label">📚 WIKI & COMPÊNDIO DO SISTEMA</span>
-      <span></span>
-    </div>
-
-    <div class="wiki-layout">
-      <!-- SIDEBAR COM CATEGORIAS E STATUS EXPANSÍVEIS -->
-      <aside class="wiki-sidebar">
-        <h3>Categorias de Status</h3>
-        <div class="wiki-categories" id="wiki-categories-list">
-          <!-- Categorias e sub-itens injetados via JS -->
-        </div>
-      </aside>
-
-      <!-- CONTEÚDO PRINCIPAL DA WIKI -->
-      <main class="wiki-content">
-        <div id="wiki-main-doc">
-          <h2>{ REGRAS & CÁLCULOS DO SISTEMA }</h2>
-
-          <div class="wiki-card-info">
-            <h3>🧮 Matemática dos Atributos</h3>
-            <p>Cada atributo determina seus modificadores de dados e pontos de vida/recursos básicos:</p>
-            <ul>
-              <li><strong>Pontos de Vida (PV):</strong> 10 + Vigor + Bônus de Classe</li>
-              <li><strong>Sanidade (SAN):</strong> 4 + Presença + Bônus de Classe</li>
-              <li><strong>Pontos de Esforço (PE):</strong> 5 + Agilidade + Vigor + Bônus de Classe</li>
-              <li><strong>Mana (MA):</strong> Vigor + Presença + Sorte + Inteligência + Bônus de Classe</li>
-              <li><strong>Evasão (EVA):</strong> Agilidade + Bônus de Classe</li>
-              <li><strong>Defesa (DEF):</strong> (Vigor / 2) + Bônus de Classe</li>
-            </ul>
-          </div>
-
-          <div class="wiki-card-info">
-            <h3>🎲 Tabela de Dados por Atributo</h3>
-            <table class="wiki-table">
-              <thead>
-                <tr>
-                  <th>Valor do Atributo</th>
-                  <th>Modificador de Rolagem</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><td>6 ou 7</td><td>-2 Dados</td></tr>
-                <tr><td>8 ou 9</td><td>-1 Dado</td></tr>
-                <tr><td>10 ou 11</td><td>+0 (Normal)</td></tr>
-                <tr><td>12 ou 13</td><td>+1 Dado</td></tr>
-                <tr><td>14 ou 15</td><td>+2 Dados</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- CONTAINER ONDE APARECEM OS DETALHES DO STATUS SELECIONADO -->
-        <div id="wiki-status-detail" style="display: none;"></div>
-      </main>
+    <div class="gm-cards-grid" id="gm-cards-list">
+      <!-- Cards dos jogadores serão injetados aqui via JS -->
     </div>
   </div>
 
-  <!-- 4. TELA DA FICHA DO JOGADOR -->
+  <!-- 3. TELA DA FICHA DO JOGADOR -->
   <div id="screen-sheet" class="screen-container">
+    
     <div class="top-nav-bar">
       <button type="button" class="btn-sub" onclick="voltarParaSelecao()">← Trocar Ficha / Sair</button>
       <span class="ficha-label" id="label-ficha-ativa">Editando Ficha: Nenhuma</span>
-      <div>
-        <button type="button" class="btn-sub" onclick="abrirWikiDireto()">📚 Wiki</button>
-        <span class="badge-gm" id="badge-gm-view" style="display:none;">MODO MESTRE</span>
-      </div>
+      <span class="badge-gm" id="badge-gm-view" style="display:none;">MODO MESTRE</span>
     </div>
 
     <!-- CABEÇALHO DA FICHA -->
     <header class="ficha-header">
       <div class="header-grid">
-        <div class="field field-medium">
-          <label>Classe Base:</label>
-          <select id="classe-base" onchange="recalcularTudo()">
-            <option value="Místico">Místico</option>
-            <option value="Especialista">Especialista</option>
-            <option value="Combatente">Combatente</option>
-          </select>
-        </div>
         <div class="field field-small">
           <label>Nível:</label>
           <input type="number" id="nivel" value="1" onchange="recalcularTudo()">
@@ -143,6 +70,14 @@
         <div class="field field-small">
           <label>Idade:</label>
           <input type="number" id="idade" value="18" onchange="salvarDados()">
+        </div>
+        <div class="field field-medium">
+          <label>Classe Base:</label>
+          <select id="classe-base" onchange="recalcularTudo()">
+            <option value="Místico">Místico</option>
+            <option value="Especialista">Especialista</option>
+            <option value="Combatente">Combatente</option>
+          </select>
         </div>
         <div class="field field-medium">
           <label>Nome:</label>
@@ -375,6 +310,7 @@
         <div class="anotacoes-grid" id="container-anotacoes"></div>
       </div>
     </main>
+
   </div>
 
   <!-- MODAL DE XP -->
@@ -393,7 +329,6 @@
       </div>
     </div>
   </div>
-
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="script.js"></script>
