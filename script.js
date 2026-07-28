@@ -14,7 +14,7 @@ firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
 // SENHA PARA O MESTRE
-const SENHA_MESTRE = "vitoria";
+const SENHA_MESTRE = "2510";
 
 let idFichaAtual = null;
 let éMestre = false;
