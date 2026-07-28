@@ -10,7 +10,9 @@ const firebaseConfig = {
 };
 
 // Inicializa o Firebase
-firebase.initializeApp(firebaseConfig);
+if (!firebase.apps.length) {
+  firebase.initializeApp(firebaseConfig);
+}
 const database = firebase.database();
 
 // SENHA PARA O MESTRE
@@ -145,53 +147,45 @@ function carregarFichaEConectar() {
   });
 }
 
-// Atualiza o valor do campo APENAS se o usuário não estiver com o foco nele (evita travar a digitação)
-function atualizarCampoSeInativo(idElemento, valorNovo) {
-  const el = document.getElementById(idElemento);
-  if (el && document.activeElement !== el) {
-    el.value = valorNovo !== undefined ? valorNovo : '';
-  }
-}
-
 function aplicarDadosFicha(data) {
-  atualizarCampoSeInativo('nome', data.nome || idFichaAtual);
-  atualizarCampoSeInativo('nivel', data.nivel || 1);
+  document.getElementById('nome').value = data.nome || idFichaAtual;
+  document.getElementById('nivel').value = data.nivel || 1;
   expAtual = data.expAtual || 0;
-  atualizarCampoSeInativo('nex', data.nex || '20%');
-  atualizarCampoSeInativo('idade', data.idade || '');
-  atualizarCampoSeInativo('traco', data.traco || '');
-  atualizarCampoSeInativo('classe-base', data.classeBase || 'Místico');
-  atualizarCampoSeInativo('classe-add', data.classeAdd || '');
-  atualizarCampoSeInativo('origem', data.origem || '');
-  atualizarCampoSeInativo('raca', data.raca || '');
-  atualizarCampoSeInativo('sexualidade', data.sexualidade || '');
-  atualizarCampoSeInativo('genero', data.genero || '');
-  atualizarCampoSeInativo('traumas', data.traumas || '');
+  document.getElementById('nex').value = data.nex || '20%';
+  document.getElementById('idade').value = data.idade || '';
+  document.getElementById('traco').value = data.traco || '';
+  document.getElementById('classe-base').value = data.classeBase || 'Místico';
+  document.getElementById('classe-add').value = data.classeAdd || '';
+  document.getElementById('origem').value = data.origem || '';
+  document.getElementById('raca').value = data.raca || '';
+  document.getElementById('sexualidade').value = data.sexualidade || '';
+  document.getElementById('genero').value = data.genero || '';
+  document.getElementById('traumas').value = data.traumas || '';
 
-  atualizarCampoSeInativo('pv-atual', data.pvAtual || 0);
-  atualizarCampoSeInativo('san-atual', data.sanAtual || 0);
-  atualizarCampoSeInativo('pe-atual', data.peAtual || 0);
-  atualizarCampoSeInativo('ma-atual', data.maAtual || 0);
-  atualizarCampoSeInativo('tp-val', data.tpVal || 0);
+  document.getElementById('pv-atual').value = data.pvAtual || 0;
+  document.getElementById('san-atual').value = data.sanAtual || 0;
+  document.getElementById('pe-atual').value = data.peAtual || 0;
+  document.getElementById('ma-atual').value = data.maAtual || 0;
+  document.getElementById('tp-val').value = data.tpVal || 0;
 
-  atualizarCampoSeInativo('attr-forca', data.attrForca || 10);
-  atualizarCampoSeInativo('attr-agilidade', data.attrAgilidade || 10);
-  atualizarCampoSeInativo('attr-vigor', data.attrVigor || 10);
-  atualizarCampoSeInativo('attr-inteligencia', data.attrInteligencia || 10);
-  atualizarCampoSeInativo('attr-presenca', data.attrPresenca || 10);
-  atualizarCampoSeInativo('attr-carisma', data.attrCarisma || 10);
-  atualizarCampoSeInativo('attr-sorte', data.attrSorte || 10);
+  document.getElementById('attr-forca').value = data.attrForca || 10;
+  document.getElementById('attr-agilidade').value = data.attrAgilidade || 10;
+  document.getElementById('attr-vigor').value = data.attrVigor || 10;
+  document.getElementById('attr-inteligencia').value = data.attrInteligencia || 10;
+  document.getElementById('attr-presenca').value = data.attrPresenca || 10;
+  document.getElementById('attr-carisma').value = data.attrCarisma || 10;
+  document.getElementById('attr-sorte').value = data.attrSorte || 10;
 
-  atualizarCampoSeInativo('hab-unicas', data.habUnicas || '');
-  atualizarCampoSeInativo('hab-lendarias', data.habLendarias || '');
-  atualizarCampoSeInativo('hab-epicas', data.habEpicas || '');
-  atualizarCampoSeInativo('hab-raras', data.habRaras || '');
-  atualizarCampoSeInativo('hab-incomuns', data.habIncomuns || '');
-  atualizarCampoSeInativo('hab-comuns', data.habComuns || '');
+  document.getElementById('hab-unicas').value = data.habUnicas || '';
+  document.getElementById('hab-lendarias').value = data.habLendarias || '';
+  document.getElementById('hab-epicas').value = data.habEpicas || '';
+  document.getElementById('hab-raras').value = data.habRaras || '';
+  document.getElementById('hab-incomuns').value = data.habIncomuns || '';
+  document.getElementById('hab-comuns').value = data.habComuns || '';
 
-  atualizarCampoSeInativo('skills-texto', data.skillsTexto || '');
-  atualizarCampoSeInativo('feiticos-texto', data.feiticosTexto || '');
-  atualizarCampoSeInativo('rituais-texto', data.rituaisTexto || '');
+  document.getElementById('skills-texto').value = data.skillsTexto || '';
+  document.getElementById('feiticos-texto').value = data.feiticosTexto || '';
+  document.getElementById('rituais-texto').value = data.rituaisTexto || '';
 
   dadosPericias = data.dadosPericias || {};
   inventario = data.inventario || [];
@@ -258,7 +252,7 @@ function salvarDados() {
   database.ref('fichas/' + idFichaAtual).set(estadoFicha);
 }
 
-// --- CONTROLE DE ABAS ---
+// --- NAVEGAÇÃO DE ABAS ---
 function openTab(tabName, evt) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -282,7 +276,6 @@ function formatarNEX(input) {
   salvarDados();
 }
 
-// --- MODAL DE XP ---
 function abrirModalXP() {
   document.getElementById('modal-xp').classList.add('active');
   document.getElementById('xp-input-val').value = '0';
@@ -317,10 +310,8 @@ function confirmarGanhoXP() {
   recalcularTudo();
 }
 
-// --- BUFFS DE ITENS ---
 function popularOpcoesBuff() {
   const select = document.getElementById('buff-alvo');
-  if (!select) return;
   select.innerHTML = `
     <optgroup label="Atributos">
       <option value="attr-forca">Força</option>
@@ -358,7 +349,6 @@ function adicionarBuffItemTemp() {
 
 function renderBuffsTemp() {
   const container = document.getElementById('lista-buffs-temp');
-  if (!container) return;
   container.innerHTML = buffsTempItem.map((b, idx) => `
     <span class="buff-tag">${b.alvoNome}: ${b.val > 0 ? '+' : ''}${b.val} <span onclick="removerBuffTemp(${idx})">×</span></span>
   `).join('');
@@ -369,10 +359,8 @@ function removerBuffTemp(idx) {
   renderBuffsTemp();
 }
 
-// --- PERÍCIAS ---
 function renderPericias() {
   const container = document.getElementById('grid-pericias');
-  if (!container) return;
   container.innerHTML = '';
   periciasLista.forEach(p => {
     let val = dadosPericias[p] !== undefined ? dadosPericias[p] : 0;
@@ -393,7 +381,6 @@ function alterarPontosPericia(pericia, valor) {
   recalcularTudo();
 }
 
-// --- RECALCULAR TUDO ---
 function recalcularTudo(deveSalvar = true) {
   let nivel = parseInt(document.getElementById('nivel').value) || 1;
   let expNecessario = nivel * 100;
@@ -480,7 +467,7 @@ function recalcularTudo(deveSalvar = true) {
     let bonusMisticoVontade = (classeBase === 'Místico' && p === 'Vontade') ? 1 : 0;
     let pontosColocados = dadosPericias[p] !== undefined ? dadosPericias[p] : 0;
 
-    if (input && document.activeElement !== input) input.value = pontosColocados;
+    if (input) input.value = pontosColocados;
 
     if (cardEl) {
       if (listaRestritas.includes(p) && classePontosRestantes > 0) {
@@ -551,7 +538,6 @@ function recalcularTudo(deveSalvar = true) {
   if (deveSalvar) salvarDados();
 }
 
-// --- GERENCIAMENTO DE ITENS ---
 function criarItem() {
   let nome = document.getElementById('item-nome').value;
   let qtd = parseInt(document.getElementById('item-qtd').value) || 1;
@@ -571,14 +557,14 @@ function criarItem() {
     document.getElementById('item-desc').value = '';
     document.getElementById('item-is-mochila').checked = false;
     document.getElementById('item-bonus-carga').value = '0';
-    if (fileInput) fileInput.value = '';
+    fileInput.value = '';
     buffsTempItem = [];
     renderBuffsTemp();
     renderItens();
     recalcularTudo();
   };
 
-  if (fileInput && fileInput.files && fileInput.files[0]) {
+  if (fileInput.files && fileInput.files[0]) {
     const reader = new FileReader();
     reader.onload = (e) => processarItem(e.target.result);
     reader.readAsDataURL(fileInput.files[0]);
@@ -588,14 +574,12 @@ function criarItem() {
 function renderItens() {
   const invContainer = document.getElementById('lista-inventario');
   const eqpContainer = document.getElementById('lista-equipamentos');
-  if (!invContainer || !eqpContainer) return;
-
   invContainer.innerHTML = ''; eqpContainer.innerHTML = '';
 
   inventario.forEach(item => {
     let pesoTotal = (item.carga * item.qtd).toFixed(1).replace('.0', '');
     let tagsBuffs = item.buffs ? item.buffs.map(b => `<span class="buff-tag">${b.alvoNome}: ${b.val>0?'+':''}${b.val}</span>`).join('') : '';
-    let imgHTML = item.imagem ? `<img src="${item.imagem}" class="item-img-preview" alt="item">` : '';
+    let imgHTML = item.imagem ? `<img src="${item.imagem}" class="item-img-preview">` : '';
 
     invContainer.innerHTML += `
       <div class="item-card">
@@ -622,7 +606,7 @@ function renderItens() {
 
   equipamentos.forEach(item => {
     let tagsBuffs = item.buffs ? item.buffs.map(b => `<span class="buff-tag">${b.alvoNome}: ${b.val>0?'+':''}${b.val}</span>`).join('') : '';
-    let imgHTML = item.imagem ? `<img src="${item.imagem}" class="item-img-preview" alt="item">` : '';
+    let imgHTML = item.imagem ? `<img src="${item.imagem}" class="item-img-preview">` : '';
 
     eqpContainer.innerHTML += `
       <div class="item-card">
@@ -650,11 +634,7 @@ function renderItens() {
 function alterarQtdItem(id, local, novaQtd) {
   let lista = local === 'inv' ? inventario : equipamentos;
   let item = lista.find(i => i.id === id);
-  if (item) {
-    item.qtd = Math.max(1, parseInt(novaQtd) || 1);
-    renderItens();
-    recalcularTudo();
-  }
+  if (item) { item.qtd = Math.max(1, parseInt(novaQtd) || 1); renderItens(); recalcularTudo(); }
 }
 
 function atualizarDescItem(id, local, novaDesc) {
@@ -665,44 +645,31 @@ function atualizarDescItem(id, local, novaDesc) {
 
 function equiparItem(id) {
   let idx = inventario.findIndex(i => i.id === id);
-  if (idx !== -1) {
-    equipamentos.push(inventario.splice(idx, 1)[0]);
-    renderItens();
-    recalcularTudo();
-  }
+  if (idx !== -1) { equipamentos.push(inventario.splice(idx, 1)[0]); renderItens(); recalcularTudo(); }
 }
 
 function desequiparItem(id) {
   let idx = equipamentos.findIndex(i => i.id === id);
-  if (idx !== -1) {
-    inventario.push(equipamentos.splice(idx, 1)[0]);
-    renderItens();
-    recalcularTudo();
-  }
+  if (idx !== -1) { inventario.push(equipamentos.splice(idx, 1)[0]); renderItens(); recalcularTudo(); }
 }
 
 function removerItem(id, local) {
   if (local === 'inv') inventario = inventario.filter(i => i.id !== id);
   if (local === 'eqp') equipamentos = equipamentos.filter(i => i.id !== id);
-  renderItens();
-  recalcularTudo();
+  renderItens(); recalcularTudo();
 }
 
-// --- EFEITOS DE STATUS ---
 function adicionarEfeito() {
   let nome = document.getElementById('effect-name').value;
   let cat = document.getElementById('effect-category').value;
   if (!nome) return;
-
   efeitos.push({ id: Date.now(), nome, cat });
   document.getElementById('effect-name').value = '';
-  renderEfeitos();
-  salvarDados();
+  renderEfeitos(); salvarDados();
 }
 
 function renderEfeitos() {
   const container = document.getElementById('lista-efeitos');
-  if (!container) return;
   container.innerHTML = '';
   efeitos.forEach(e => {
     container.innerHTML += `
@@ -716,20 +683,16 @@ function renderEfeitos() {
 
 function removerEfeito(id) {
   efeitos = efeitos.filter(e => e.id !== id);
-  renderEfeitos();
-  salvarDados();
+  renderEfeitos(); salvarDados();
 }
 
-// --- BLOCOS DE ANOTAÇÕES ---
 function criarBlocoAnotacao() {
   blocosAnotacoes.push({ id: Date.now(), titulo: "Nova Anotação", texto: "" });
-  renderBlocosAnotacoes();
-  salvarDados();
+  renderBlocosAnotacoes(); salvarDados();
 }
 
 function renderBlocosAnotacoes() {
   const container = document.getElementById('container-anotacoes');
-  if (!container) return;
   container.innerHTML = '';
   blocosAnotacoes.forEach(b => {
     container.innerHTML += `
@@ -749,6 +712,5 @@ function atualizarBloco(id, campo, valor) {
 
 function removerBloco(id) {
   blocosAnotacoes = blocosAnotacoes.filter(b => b.id !== id);
-  renderBlocosAnotacoes();
-  salvarDados();
+  renderBlocosAnotacoes(); salvarDados();
 }
