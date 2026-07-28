@@ -752,3 +752,182 @@ function removerBloco(id) {
   renderBlocosAnotacoes();
   salvarDados();
 }
+// ==========================================================================
+// ESTRUTURA DE STATUS DA WIKI (6 CATEGORIAS & EXAMPLES)
+// ==========================================================================
+const wikiStatusData = {
+  "Dano Contínuo (DoT)": [
+    {
+      nome: "Incineração / Sangramento",
+      desc: "Causa dano contínuo todo início de turno.",
+      niveis: [
+        { lvl: 1, efeito: "1d4 de dano por turno" },
+        { lvl: 2, efeito: "1d6 de dano por turno" },
+        { lvl: 3, efeito: "1d8 de dano + reduz cura recebida em 20%" },
+        { lvl: 5, efeito: "2d8 de dano + reduz cura recebida em 50%" },
+        { lvl: 10, efeito: "5d10 de dano por turno (Incurável enquanto ativo)" }
+      ]
+    }
+  ],
+  "Restrição de Movimento": [
+    {
+      nome: "Lentidão / Paralisia",
+      desc: "Afeta a capacidade de locomoção do personagem.",
+      niveis: [
+        { lvl: 1, efeito: "-2m de Deslocamento" },
+        { lvl: 2, efeito: "-4m de Deslocamento e -2 na Evasão" },
+        { lvl: 5, efeito: "Deslocamento reduzido à metade" },
+        { lvl: 10, efeito: "Imobilizado (Deslocamento = 0, Evasão = 0)" }
+      ]
+    }
+  ],
+  "Restrição de Ação": [
+    {
+      nome: "Atordoado / Silenciado",
+      desc: "Impede ou limita ações executadas no turno.",
+      niveis: [
+        { lvl: 1, efeito: "Não pode usar Ações Bônus" },
+        { lvl: 3, efeito: "Não pode conjurar feitiços ou rituais" },
+        { lvl: 5, efeito: "Perde 1 Ação Padrão no turno" },
+        { lvl: 10, efeito: "Incapacitado totalmente por 1 rodada" }
+      ]
+    }
+  ],
+  "Degradação Física": [
+    {
+      nome: "Fraqueza / Vulnerabilidade",
+      desc: "Reduz atributos físicos e resistências corporais.",
+      niveis: [
+        { lvl: 1, efeito: "-2 na Defesa" },
+        { lvl: 3, efeito: "-4 na Defesa e -2 em testes de Força/Vigor" },
+        { lvl: 5, efeito: "Recebe +50% de dano físico de todas as fontes" },
+        { lvl: 10, efeito: "Recebe dobro de dano físico e Defesa zerada" }
+      ]
+    }
+  ],
+  "Degradação Mental e Paranormal": [
+    {
+      nome: "Abalado / Insanidade",
+      desc: "Corrompe a mente e a capacidade de concentração.",
+      niveis: [
+        { lvl: 1, efeito: "-2 em Vontade e Sanidade" },
+        { lvl: 3, efeito: "Custo de Mana (MA) para feitiços aumenta em +2" },
+        { lvl: 5, efeito: "Desvantagem em testes de Inteligência e Presença" },
+        { lvl: 10, efeito: "Perde o controle do personagem temporariamente" }
+      ]
+    }
+  ],
+  "Interferência Mágica e Bônus (Buffs)": [
+    {
+      nome: "Inspirado",
+      desc: "Eleva o foco e bônus de dados do alvo.",
+      niveis: [
+        { lvl: 1, efeito: "+3 em Testes de Ataque/Perícia" },
+        { lvl: 2, efeito: "+5 em Testes de Ataque/Perícia" },
+        { lvl: 3, efeito: "+5 em Ataque e +2 na Evasão" },
+        { lvl: 5, efeito: "+7 em Ataque, +3 Evasão e +3 Vontade" },
+        { lvl: 9, efeito: "+11 Ataque, +5 Evasão, +7 Vontade | Especial: 1x por turno rola +1d10 em um teste" }
+      ]
+    },
+    {
+      nome: "Armadura Arcana",
+      desc: "Cria um escudo mágico protetor sobre o corpo.",
+      niveis: [
+        { lvl: 1, efeito: "Escudo: +15 PV Temporários" },
+        { lvl: 2, efeito: "Escudo: +25 PV Temporários | +2 Defesa" },
+        { lvl: 5, efeito: "Escudo: +85 PV Temporários | +5 Defesa | Dano de Retorno: 1d6" }
+      ]
+    }
+  ]
+};
+
+let telaAnteriorWiki = 'screen-select';
+
+function abrirWikiDireto() {
+  const telas = document.querySelectorAll('.screen-container');
+  telas.forEach(t => {
+    if (t.classList.contains('active')) telaAnteriorWiki = t.id;
+  });
+  
+  renderWikiCategories();
+  mostrarTelaWikiMain();
+  mostrarTela('screen-wiki');
+}
+
+function voltarDaWiki() {
+  mostrarTela(telaAnteriorWiki || 'screen-select');
+}
+
+function renderWikiCategories() {
+  const container = document.getElementById('wiki-categories-list');
+  if (!container) return;
+  container.innerHTML = '';
+
+  Object.keys(wikiStatusData).forEach((catName, index) => {
+    const items = wikiStatusData[catName];
+    let itemsHTML = items.map(item => `
+      <div class="wiki-status-item" onclick="verDetalhesStatus('${catName}', '${item.nome}')">
+        🔹 ${item.nome}
+      </div>
+    `).join('');
+
+    container.innerHTML += `
+      <div class="category-accordion" id="cat-accordion-${index}">
+        <div class="category-header" onclick="toggleCategoryAccordion(${index})">
+          <span>${catName}</span>
+          <span class="arrow">▶</span>
+        </div>
+        <div class="category-items">
+          ${itemsHTML}
+        </div>
+      </div>
+    `;
+  });
+}
+
+function toggleCategoryAccordion(index) {
+  const el = document.getElementById(`cat-accordion-${index}`);
+  if (el) el.classList.toggle('open');
+}
+
+function mostrarTelaWikiMain() {
+  document.getElementById('wiki-main-doc').style.display = 'block';
+  document.getElementById('wiki-status-detail').style.display = 'none';
+}
+
+function verDetalhesStatus(categoria, statusNome) {
+  const statusObj = wikiStatusData[categoria].find(s => s.nome === statusNome);
+  if (!statusObj) return;
+
+  document.getElementById('wiki-main-doc').style.display = 'none';
+  const detailContainer = document.getElementById('wiki-status-detail');
+  detailContainer.style.display = 'block';
+
+  let tabelaNiveisHTML = statusObj.niveis.map(n => `
+    <tr>
+      <td><strong>Nível ${n.lvl}</strong></td>
+      <td>${n.efeito}</td>
+    </tr>
+  `).join('');
+
+  detailContainer.innerHTML = `
+    <button class="wiki-btn-back" onclick="mostrarTelaWikiMain()">← Voltar às Regras Gerais</button>
+    <h2>✨ ${statusObj.nome}</h2>
+    <p style="color: #a8a8b3; margin-bottom: 15px;"><strong>Categoria:</strong> ${categoria}</p>
+    <div class="wiki-card-info">
+      <p>${statusObj.desc}</p>
+    </div>
+    <h3>Escalonamento por Nível</h3>
+    <table class="wiki-table">
+      <thead>
+        <tr>
+          <th>Nível</th>
+          <th>Efeito Aplicado</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tabelaNiveisHTML}
+      </tbody>
+    </table>
+  `;
+}
