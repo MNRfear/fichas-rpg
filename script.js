@@ -10,12 +10,10 @@ const firebaseConfig = {
 };
 
 // Inicializa o Firebase
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
-// SENHA PARA O MESTRE
+// SENHA PARA O MESTRE (Você pode alterar essa senha aqui!)
 const SENHA_MESTRE = "1234";
 
 let idFichaAtual = null;
@@ -91,6 +89,7 @@ function carregarPainelMestre() {
   const container = document.getElementById('gm-cards-list');
   container.innerHTML = "<p>Carregando fichas...</p>";
 
+  // Lê TODAS as fichas existentes no Firebase
   database.ref('fichas').on('value', (snapshot) => {
     container.innerHTML = '';
     const fichas = snapshot.val();
@@ -142,6 +141,7 @@ function carregarFichaEConectar() {
     if (data) {
       aplicarDadosFicha(data);
     } else {
+      // Ficha nova / em branco
       recalcularTudo(false);
     }
   });
@@ -252,7 +252,7 @@ function salvarDados() {
   database.ref('fichas/' + idFichaAtual).set(estadoFicha);
 }
 
-// --- NAVEGAÇÃO DE ABAS ---
+// --- RESTANANTE DA LÓGICA DO SISTEMA ---
 function openTab(tabName, evt) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
