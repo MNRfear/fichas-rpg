@@ -399,7 +399,7 @@ function recalcularTudo(deveSalvar = true) {
   let expNecessario = nivel * 100;
   document.getElementById('exp-display').value = `${expAtual} / ${expNecessario}`;
 
-  // 1. Pega os valores base digitados pelo usuário
+// 1. Pega os valores base digitados pelo usuário
   let forcaBase = parseFloat(document.getElementById('attr-forca').value) || 0;
   let agilidadeBase = parseFloat(document.getElementById('attr-agilidade').value) || 0;
   let vigorBase = parseFloat(document.getElementById('attr-vigor').value) || 0;
@@ -430,7 +430,7 @@ function recalcularTudo(deveSalvar = true) {
     }
   });
 
-  // 3. Aplica os buffs aos atributos FINAIS (usados nos cálculos de PV, PE, Mana, Defesa, etc)
+  // 3. Aplica os buffs aos atributos FINAIS
   let forca = forcaBase + (buffsAcumulados['attr-forca'] || 0);
   let agilidade = agilidadeBase + (buffsAcumulados['attr-agilidade'] || 0);
   let vigor = vigorBase + (buffsAcumulados['attr-vigor'] || 0);
@@ -439,35 +439,44 @@ function recalcularTudo(deveSalvar = true) {
   let carisma = carismaBase + (buffsAcumulados['attr-carisma'] || 0);
   let sorte = sorteBase + (buffsAcumulados['attr-sorte'] || 0);
 
+  // --- ATUALIZAÇÃO VISUAL DOS CARDS DE ATRIBUTOS ---
+  const listaAtributos = [
+    { id: 'forca', finalVal: forca },
+    { id: 'agilidade', finalVal: agilidade },
+    { id: 'vigor', finalVal: vigor },
+    { id: 'inteligencia', finalVal: inteligencia },
+    { id: 'presenca', finalVal: presenca },
+    { id: 'carisma', finalVal: carisma },
+    { id: 'sorte', finalVal: sorte }
+  ];
 
-  // =========================================================================
-  // ---> MUDANÇA ADICIONADA AQUI: Adiciona as tags visuais de buff nos atributos
-  // =========================================================================
-  const listaAtributos = ['forca', 'agilidade', 'vigor', 'inteligencia', 'presenca', 'carisma', 'sorte'];
   listaAtributos.forEach(attr => {
-    let inputEl = document.getElementById(`attr-${attr}`);
-    let buffVal = buffsAcumulados[`attr-${attr}`] || 0;
+    let inputEl = document.getElementById(`attr-${attr.id}`);
+    let buffVal = buffsAcumulados[`attr-${attr.id}`] || 0;
     
-    // Remove a tag antiga se houver
-    let tagAntiga = document.getElementById(`tag-buff-${attr}`);
-    if (tagAntiga) tagAntiga.remove();
+    if (inputEl && inputEl.parentNode) {
+      // Procura ou cria a tag que exibirá o total buffado
+      let tagDisplay = document.getElementById(`display-buff-${attr.id}`);
+      if (!tagDisplay) {
+        tagDisplay = document.createElement('span');
+        tagDisplay.id = `display-buff-${attr.id}`;
+        tagDisplay.className = 'attr-buff-display';
+        inputEl.parentNode.appendChild(tagDisplay);
+      }
 
-    // Se houver buff, cria a tag visual ao lado do input
-    if (buffVal !== 0 && inputEl && inputEl.parentNode) {
-      let novaTag = document.createElement('span');
-      novaTag.id = `tag-buff-${attr}`;
-      novaTag.className = 'bonus-tag ativo';
-      novaTag.style.marginLeft = '8px';
-      novaTag.innerText = buffVal > 0 ? `+${buffVal} Buff` : `${buffVal} Debuff`;
-      
-      inputEl.parentNode.insertBefore(novaTag, inputEl.nextSibling);
+      // Se houver buff/debuff ativo, altera a cor do input e exibe o valor final
+      if (buffVal !== 0) {
+        inputEl.classList.add('attr-buffed');
+        tagDisplay.innerText = `(${attr.finalVal})`;
+        tagDisplay.style.color = buffVal > 0 ? '#00ff88' : '#ff4655';
+        tagDisplay.style.display = 'inline-block';
+      } else {
+        inputEl.classList.remove('attr-buffed');
+        tagDisplay.style.display = 'none';
+      }
     }
   });
-  // =========================================================================
-  // ---> FIM DA MUDANÇA <---
-  // =========================================================================
-
-
+  
   // 4. Recalcula Status MÁXIMOS com base nos atributos JÁ BUFFADOS
   document.getElementById('pv-max').value = 10 + vigor + bonusClasse.pv + (buffsAcumulados['status-pv'] || 0);
   document.getElementById('san-max').value = 4 + presenca + bonusClasse.san + (buffsAcumulados['status-san'] || 0);
