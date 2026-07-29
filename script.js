@@ -399,12 +399,14 @@ function recalcularTudo(deveSalvar = true) {
   let expNecessario = nivel * 100;
   document.getElementById('exp-display').value = `${expAtual} / ${expNecessario}`;
 
-  let forca = parseFloat(document.getElementById('attr-forca').value) || 0;
-  let agilidade = parseFloat(document.getElementById('attr-agilidade').value) || 0;
-  let vigor = parseFloat(document.getElementById('attr-vigor').value) || 0;
-  let inteligencia = parseFloat(document.getElementById('attr-inteligencia').value) || 0;
-  let presenca = parseFloat(document.getElementById('attr-presenca').value) || 0;
-  let sorte = parseFloat(document.getElementById('attr-sorte').value) || 0;
+  // 1. Pega os valores base digitados pelo usuário
+  let forcaBase = parseFloat(document.getElementById('attr-forca').value) || 0;
+  let agilidadeBase = parseFloat(document.getElementById('attr-agilidade').value) || 0;
+  let vigorBase = parseFloat(document.getElementById('attr-vigor').value) || 0;
+  let inteligenciaBase = parseFloat(document.getElementById('attr-inteligencia').value) || 0;
+  let presencaBase = parseFloat(document.getElementById('attr-presenca').value) || 0;
+  let carismaBase = parseFloat(document.getElementById('attr-carisma').value) || 0;
+  let sorteBase = parseFloat(document.getElementById('attr-sorte').value) || 0;
 
   const classeBase = document.getElementById('classe-base').value;
   let bonusClasse = { pv: 0, pe: 0, san: 0, ma: 0, def: 0, eva: 0, ptsLivre: 0 };
@@ -417,6 +419,7 @@ function recalcularTudo(deveSalvar = true) {
     bonusClasse.pv = 4; bonusClasse.san = 5; bonusClasse.ma = 10;
   }
 
+  // 2. Mapeia todos os buffs de itens equipados
   let buffsAcumulados = {};
   equipamentos.forEach(item => {
     let mult = parseInt(item.qtd) || 1;
@@ -427,13 +430,16 @@ function recalcularTudo(deveSalvar = true) {
     }
   });
 
-  forca += (buffsAcumulados['attr-forca'] || 0);
-  agilidade += (buffsAcumulados['attr-agilidade'] || 0);
-  vigor += (buffsAcumulados['attr-vigor'] || 0);
-  inteligencia += (buffsAcumulados['attr-inteligencia'] || 0);
-  presenca += (buffsAcumulados['attr-presenca'] || 0);
-  sorte += (buffsAcumulados['attr-sorte'] || 0);
+  // 3. Aplica os buffs aos atributos FINAIS (usados nos cálculos de PV, PE, Mana, Defesa, etc)
+  let forca = forcaBase + (buffsAcumulados['attr-forca'] || 0);
+  let agilidade = agilidadeBase + (buffsAcumulados['attr-agilidade'] || 0);
+  let vigor = vigorBase + (buffsAcumulados['attr-vigor'] || 0);
+  let inteligencia = inteligenciaBase + (buffsAcumulados['attr-inteligencia'] || 0);
+  let presenca = presencaBase + (buffsAcumulados['attr-presenca'] || 0);
+  let carisma = carismaBase + (buffsAcumulados['attr-carisma'] || 0);
+  let sorte = sorteBase + (buffsAcumulados['attr-sorte'] || 0);
 
+  // 4. Recalcula Status MÁXIMOS com base nos atributos JÁ BUFFADOS
   document.getElementById('pv-max').value = 10 + vigor + bonusClasse.pv + (buffsAcumulados['status-pv'] || 0);
   document.getElementById('san-max').value = 4 + presenca + bonusClasse.san + (buffsAcumulados['status-san'] || 0);
   document.getElementById('pe-max').value = 5 + agilidade + vigor + bonusClasse.pe + (buffsAcumulados['status-pe'] || 0);
