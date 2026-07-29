@@ -439,6 +439,35 @@ function recalcularTudo(deveSalvar = true) {
   let carisma = carismaBase + (buffsAcumulados['attr-carisma'] || 0);
   let sorte = sorteBase + (buffsAcumulados['attr-sorte'] || 0);
 
+
+  // =========================================================================
+  // ---> MUDANÇA ADICIONADA AQUI: Adiciona as tags visuais de buff nos atributos
+  // =========================================================================
+  const listaAtributos = ['forca', 'agilidade', 'vigor', 'inteligencia', 'presenca', 'carisma', 'sorte'];
+  listaAtributos.forEach(attr => {
+    let inputEl = document.getElementById(`attr-${attr}`);
+    let buffVal = buffsAcumulados[`attr-${attr}`] || 0;
+    
+    // Remove a tag antiga se houver
+    let tagAntiga = document.getElementById(`tag-buff-${attr}`);
+    if (tagAntiga) tagAntiga.remove();
+
+    // Se houver buff, cria a tag visual ao lado do input
+    if (buffVal !== 0 && inputEl && inputEl.parentNode) {
+      let novaTag = document.createElement('span');
+      novaTag.id = `tag-buff-${attr}`;
+      novaTag.className = 'bonus-tag ativo';
+      novaTag.style.marginLeft = '8px';
+      novaTag.innerText = buffVal > 0 ? `+${buffVal} Buff` : `${buffVal} Debuff`;
+      
+      inputEl.parentNode.insertBefore(novaTag, inputEl.nextSibling);
+    }
+  });
+  // =========================================================================
+  // ---> FIM DA MUDANÇA <---
+  // =========================================================================
+
+
   // 4. Recalcula Status MÁXIMOS com base nos atributos JÁ BUFFADOS
   document.getElementById('pv-max').value = 10 + vigor + bonusClasse.pv + (buffsAcumulados['status-pv'] || 0);
   document.getElementById('san-max').value = 4 + presenca + bonusClasse.san + (buffsAcumulados['status-san'] || 0);
