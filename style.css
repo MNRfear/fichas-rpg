@@ -201,3 +201,15 @@ textarea { width: 100%; background: #202024; color: #fff; border: 1px solid #292
 .btn-primary:hover { background: #e03e4d; }
 .btn-sub { background: #4d4d57; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
 .btn-danger { background: #cc2936; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
+
+/* Destaque visual quando um Atributo possui Buff ou Debuff */
+.card-attr input.attr-buffed {
+  border-color: #00ff88 !important;
+  color: #00ff88 !important;
+}
+
+.attr-buff-display {
+  font-size: 0.9rem;
+  font-weight: bold;
+  margin-top: 2px;
+}
