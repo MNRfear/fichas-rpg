@@ -72,6 +72,15 @@ window.onload = () => {
   popularOpcoesBuff();
   renderPericias();
   renderizarSlots();
+
+  // OUVINTE EM TEMPO REAL: Toda vez que um input, select ou textarea mudo na tela, salva direto no Firebase!
+  document.getElementById('screen-sheet').addEventListener('input', (e) => {
+    // Evita disparar salvamento desnecessário enquanto digita no modal de XP
+    if (e.target.closest('#modal-xp')) return; 
+    
+    // Recalcula atributos e envia a atualização ao Firebase
+    recalcularTudo(true);
+  });
 };
 
 // --- NAVEGAÇÃO DE MODO E TELAS ---
@@ -308,7 +317,7 @@ function salvarDados() {
     dadosPericias, inventario, equipamentos, efeitos, blocosAnotacoes
   };
 
-  database.ref('fichas/' + idFichaAtual).set(estadoFicha);
+  database.ref('fichas/' + idFichaAtual).update(estadoFicha);
 }
 
 // --- CONTROLE DE ABAS ---
