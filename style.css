@@ -213,3 +213,109 @@ textarea { width: 100%; background: #202024; color: #fff; border: 1px solid #292
   font-weight: bold;
   margin-top: 2px;
 }
+/* --- SLOTS DE MAGIA --- */
+.slots-container {
+  background: rgba(18, 18, 24, 0.85);
+  border: 1px solid #333;
+  padding: 15px;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+
+.multiclass-box {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 10px 15px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+}
+
+.multiclass-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.multiclass-row input[type="number"] {
+  width: 60px;
+  text-align: center;
+}
+
+.slots-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.btn-restaurar {
+  background: #28a745;
+  color: #fff;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-zerar {
+  background: #dc3545;
+  color: #fff;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.circulos-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.circulo-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #1e1e26;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border-left: 4px solid #00d2ff;
+}
+
+.circulo-info {
+  font-weight: bold;
+  min-width: 120px;
+}
+
+.circulo-controles {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-slot {
+  background: #333;
+  color: #fff;
+  border: 1px solid #555;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-fundir {
+  background: #8a2be2;
+  color: #fff;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.btn-fundir:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
