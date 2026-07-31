@@ -446,14 +446,16 @@ function alterarPontosPericia(pericia, valor) {
   recalcularTudo();
 }
 
-// --- LÓGICA DE SLOTS DE MAGIA ---
+// --- LÓGICA DE SLOTS DE MAGIA 
 function calcularSlotsMaximos() {
   let maximos = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 
+  // 1. Bônus por NEX
   let nexTexto = document.getElementById('nex')?.value || '0%';
   let nexNum = parseInt(nexTexto.replace(/[^0-9]/g, '')) || 0;
   maximos[0] += Math.floor(nexNum / 5);
 
+  // 2. Classe Base
   let nivelPersonagem = parseInt(document.getElementById('nivel')?.value) || 1;
   nivelPersonagem = Math.min(Math.max(nivelPersonagem, 1), 20);
   
@@ -462,19 +464,27 @@ function calcularSlotsMaximos() {
     maximos[0] += tabelaClassePadrao[classeBase][nivelPersonagem - 1];
   }
 
-  let nivelMagicoTotal = 0;
+  // 3. Classe Adicional Mágica 1 (Cálculo Individual)
   if (document.getElementById('classe-magica-1')?.checked) {
-    nivelMagicoTotal += parseInt(document.getElementById('nv-classe-magica-1')?.value) || 0;
-  }
-  if (document.getElementById('classe-magica-2')?.checked) {
-    nivelMagicoTotal += parseInt(document.getElementById('nv-classe-magica-2')?.value) || 0;
+    let nv1 = parseInt(document.getElementById('nv-classe-magica-1')?.value) || 0;
+    if (nv1 > 0) {
+      let idx1 = Math.min(Math.max(nv1, 1), 20) - 1;
+      let slotsClasse1 = tabelaDND[idx1];
+      for (let i = 0; i < 9; i++) {
+        maximos[i] += slotsClasse1[i];
+      }
+    }
   }
 
-  if (nivelMagicoTotal > 0) {
-    let nvIndex = Math.min(Math.max(nivelMagicoTotal, 1), 20) - 1;
-    let slotsDND = tabelaDND[nvIndex];
-    for (let i = 0; i < 9; i++) {
-      maximos[i] += slotsDND[i];
+  // 4. Classe Adicional Mágica 2 (Cálculo Individual)
+  if (document.getElementById('classe-magica-2')?.checked) {
+    let nv2 = parseInt(document.getElementById('nv-classe-magica-2')?.value) || 0;
+    if (nv2 > 0) {
+      let idx2 = Math.min(Math.max(nv2, 1), 20) - 1;
+      let slotsClasse2 = tabelaDND[idx2];
+      for (let i = 0; i < 9; i++) {
+        maximos[i] += slotsClasse2[i];
+      }
     }
   }
 
