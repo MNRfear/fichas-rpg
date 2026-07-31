@@ -46,6 +46,63 @@
       <!-- Cards dos jogadores serão injetados aqui via JS -->
     </div>
   </div>
+  <!-- PAINEL DO MESTRE: CRIADOR DE EFEITOS DE STATUS -->
+<div id="painel-mestre-efeitos" class="card-mestre">
+  <h3>Criar Novo Efeito de Status</h3>
+  
+  <div class="form-group">
+    <label for="efeito-nome">Nome do Efeito:</label>
+    <input type="text" id="efeito-nome" placeholder="Ex: Queimadura Grave, Veneno, Bênção">
+  </div>
+
+  <div class="form-group">
+    <label for="efeito-tipo">Tipo de Operação por Turno / Status:</label>
+    <select id="efeito-tipo">
+      <option value="dano_pv">Dano Contínuo (PV)</option>
+      <option value="cura_pv">Cura por Turno (PV)</option>
+      <option value="dano_pe">Gasto de PE por Turno</option>
+      <option value="regen_pe">Regen de PE por Turno</option>
+      <option value="buff_atributo">Modificador de Status / Atributo</option>
+      <option value="res_especifica">Resistência Específica (Perfuração, Fogo, etc.)</option>
+    </select>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label for="efeito-val-base">Valor Base:</label>
+      <input type="number" id="efeito-val-base" value="5">
+    </div>
+
+    <div class="form-group">
+      <label for="efeito-escalonamento">Escalonamento por Turno ($X$):</label>
+      <select id="efeito-escalonamento">
+        <option value="fixo">Fixo (Sem alteração)</option>
+        <option value="multiplicar">Multiplicar por Turno ($Base \times X$)</option>
+        <option value="adicionar">Adicionar por Turno ($Base + Multiplicador \times X$)</option>
+        <option value="porcentagem">Porcentagem por Turno ($Base + \% \times X$)</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="efeito-val-escala">Valor de Escala / Multiplicador:</label>
+      <input type="number" id="efeito-val-escala" value="2" placeholder="Ex: 2 para 5+2*X">
+    </div>
+  </div>
+
+  <div class="form-row">
+    <div class="form-group">
+      <label for="efeito-duracao">Duração (Turnos):</label>
+      <input type="number" id="efeito-duracao" value="3" placeholder="0 ou negativo para Infinito">
+    </div>
+
+    <div class="form-group">
+      <label for="efeito-res-tipo">Tipo de Dano / Defesa (Opcional):</label>
+      <input type="text" id="efeito-res-tipo" placeholder="Ex: Queimadura, Balístico">
+    </div>
+  </div>
+
+  <button type="button" onclick="salvarEfeitoMestre()" class="btn-salvar">Salvar Efeito no Banco</button>
+</div>
 
   <!-- 3. TELA DA FICHA DO JOGADOR -->
   <div id="screen-sheet" class="screen-container">
