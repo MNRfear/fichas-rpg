@@ -202,17 +202,6 @@ textarea { width: 100%; background: #202024; color: #fff; border: 1px solid #292
 .btn-sub { background: #4d4d57; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
 .btn-danger { background: #cc2936; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
 
-/* Destaque visual quando um Atributo possui Buff ou Debuff */
-.card-attr input.attr-buffed {
-  border-color: #00ff88 !important;
-  color: #00ff88 !important;
-}
-
-.attr-buff-display {
-  font-size: 0.9rem;
-  font-weight: bold;
-  margin-top: 2px;
-}
 /* --- SLOTS DE MAGIA --- */
 .slots-container {
   background: rgba(18, 18, 24, 0.85);
@@ -239,6 +228,11 @@ textarea { width: 100%; background: #202024; color: #fff; border: 1px solid #292
 .multiclass-row input[type="number"] {
   width: 60px;
   text-align: center;
+  background: #121214;
+  border: 1px solid #4d4d57;
+  color: #fff;
+  padding: 4px;
+  border-radius: 4px;
 }
 
 .slots-actions {

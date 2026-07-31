@@ -36,9 +36,42 @@ let blocosAnotacoes = [];
 let buffsTempItem = [];
 let expAtual = 0;
 
+// --- DADOS DOS SLOTS DE MAGIA ---
+let slotsAtuais = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+const tabelaDND = [
+  [2, 0, 0, 0, 0, 0, 0, 0, 0],
+  [3, 0, 0, 0, 0, 0, 0, 0, 0],
+  [4, 2, 0, 0, 0, 0, 0, 0, 0],
+  [4, 3, 0, 0, 0, 0, 0, 0, 0],
+  [4, 3, 2, 0, 0, 0, 0, 0, 0],
+  [4, 3, 3, 0, 0, 0, 0, 0, 0],
+  [4, 3, 3, 1, 0, 0, 0, 0, 0],
+  [4, 3, 3, 2, 0, 0, 0, 0, 0],
+  [4, 3, 3, 3, 1, 0, 0, 0, 0],
+  [4, 3, 3, 3, 2, 0, 0, 0, 0],
+  [4, 3, 3, 3, 2, 1, 0, 0, 0],
+  [4, 3, 3, 3, 2, 1, 0, 0, 0],
+  [4, 3, 3, 3, 2, 1, 1, 0, 0],
+  [4, 3, 3, 3, 2, 1, 1, 0, 0],
+  [4, 3, 3, 3, 2, 1, 1, 1, 0],
+  [4, 3, 3, 3, 2, 1, 1, 1, 0],
+  [4, 3, 3, 3, 2, 1, 1, 1, 1],
+  [4, 3, 3, 3, 3, 1, 1, 1, 1],
+  [4, 3, 3, 3, 3, 2, 1, 1, 1],
+  [4, 3, 3, 3, 3, 2, 2, 1, 1]
+];
+
+const tabelaClassePadrao = {
+  Combatente:  [1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5],
+  Especialista:[1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10],
+  Místico:     [3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12]
+};
+
 window.onload = () => {
   popularOpcoesBuff();
   renderPericias();
+  renderizarSlots();
 };
 
 // --- NAVEGAÇÃO DE MODO E TELAS ---
@@ -145,11 +178,14 @@ function carregarFichaEConectar() {
   });
 }
 
-// Atualiza o valor do campo APENAS se o usuário não estiver com o foco nele (evita travar a digitação)
 function atualizarCampoSeInativo(idElemento, valorNovo) {
   const el = document.getElementById(idElemento);
   if (el && document.activeElement !== el) {
-    el.value = valorNovo !== undefined ? valorNovo : '';
+    if (el.type === 'checkbox') {
+      el.checked = !!valorNovo;
+    } else {
+      el.value = valorNovo !== undefined ? valorNovo : '';
+    }
   }
 }
 
@@ -193,6 +229,14 @@ function aplicarDadosFicha(data) {
   atualizarCampoSeInativo('feiticos-texto', data.feiticosTexto || '');
   atualizarCampoSeInativo('rituais-texto', data.rituaisTexto || '');
 
+  if (data.slotsMagia) {
+    slotsAtuais = data.slotsMagia.atuais || [0, 0, 0, 0, 0, 0, 0, 0, 0];
+    atualizarCampoSeInativo('classe-magica-1', data.slotsMagia.magica1);
+    atualizarCampoSeInativo('nv-classe-magica-1', data.slotsMagia.nvMagica1 || 0);
+    atualizarCampoSeInativo('classe-magica-2', data.slotsMagia.magica2);
+    atualizarCampoSeInativo('nv-classe-magica-2', data.slotsMagia.nvMagica2 || 0);
+  }
+
   dadosPericias = data.dadosPericias || {};
   inventario = data.inventario || [];
   equipamentos = data.equipamentos || [];
@@ -202,6 +246,7 @@ function aplicarDadosFicha(data) {
   renderItens();
   renderEfeitos();
   renderBlocosAnotacoes();
+  renderizarSlots();
   recalcularTudo(false);
 }
 
@@ -252,6 +297,14 @@ function salvarDados() {
     feiticosTexto: document.getElementById('feiticos-texto').value,
     rituaisTexto: document.getElementById('rituais-texto').value,
 
+    slotsMagia: {
+      atuais: slotsAtuais,
+      magica1: document.getElementById('classe-magica-1')?.checked || false,
+      nvMagica1: document.getElementById('nv-classe-magica-1')?.value || 0,
+      magica2: document.getElementById('classe-magica-2')?.checked || false,
+      nvMagica2: document.getElementById('nv-classe-magica-2')?.value || 0
+    },
+
     dadosPericias, inventario, equipamentos, efeitos, blocosAnotacoes
   };
 
@@ -279,7 +332,7 @@ function formatarNEX(input) {
     if (parseInt(val) > 100) val = '100';
     input.value = `${val}%`;
   } else { input.value = '0%'; }
-  salvarDados();
+  recalcularTudo();
 }
 
 // --- MODAL DE XP ---
@@ -393,13 +446,111 @@ function alterarPontosPericia(pericia, valor) {
   recalcularTudo();
 }
 
+// --- LÓGICA DE SLOTS DE MAGIA ---
+function calcularSlotsMaximos() {
+  let maximos = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+  let nexTexto = document.getElementById('nex')?.value || '0%';
+  let nexNum = parseInt(nexTexto.replace(/[^0-9]/g, '')) || 0;
+  maximos[0] += Math.floor(nexNum / 5);
+
+  let nivelPersonagem = parseInt(document.getElementById('nivel')?.value) || 1;
+  nivelPersonagem = Math.min(Math.max(nivelPersonagem, 1), 20);
+  
+  let classeBase = document.getElementById('classe-base')?.value || 'Combatente';
+  if (tabelaClassePadrao[classeBase]) {
+    maximos[0] += tabelaClassePadrao[classeBase][nivelPersonagem - 1];
+  }
+
+  let nivelMagicoTotal = 0;
+  if (document.getElementById('classe-magica-1')?.checked) {
+    nivelMagicoTotal += parseInt(document.getElementById('nv-classe-magica-1')?.value) || 0;
+  }
+  if (document.getElementById('classe-magica-2')?.checked) {
+    nivelMagicoTotal += parseInt(document.getElementById('nv-classe-magica-2')?.value) || 0;
+  }
+
+  if (nivelMagicoTotal > 0) {
+    let nvIndex = Math.min(Math.max(nivelMagicoTotal, 1), 20) - 1;
+    let slotsDND = tabelaDND[nvIndex];
+    for (let i = 0; i < 9; i++) {
+      maximos[i] += slotsDND[i];
+    }
+  }
+
+  return maximos;
+}
+
+function renderizarSlots() {
+  const container = document.getElementById('circulos-grid');
+  if (!container) return;
+
+  const maximos = calcularSlotsMaximos();
+  container.innerHTML = '';
+
+  for (let i = 0; i < 9; i++) {
+    let circulo = i + 1;
+    let atual = slotsAtuais[i] || 0;
+    let max = maximos[i];
+
+    let card = document.createElement('div');
+    card.className = 'circulo-card';
+    card.innerHTML = `
+      <div class="circulo-info">${circulo}º Círculo</div>
+      <div class="circulo-controles">
+        <button type="button" class="btn-slot" onclick="alterarSlot(${i}, -1)">-</button>
+        <span><strong>${atual}</strong> / ${max}</span>
+        <button type="button" class="btn-slot" onclick="alterarSlot(${i}, 1)">+</button>
+        ${i < 8 ? `<button type="button" class="btn-fundir" ${atual < 2 ? 'disabled' : ''} onclick="fundirSlots(${i})">Fundir (2x ➔ 1x Nv.${circulo + 1})</button>` : ''}
+      </div>
+    `;
+    container.appendChild(card);
+  }
+}
+
+function alterarSlot(index, delta) {
+  slotsAtuais[index] = Math.max(0, (slotsAtuais[index] || 0) + delta);
+  renderizarSlots();
+  salvarDados();
+}
+
+function fundirSlots(index) {
+  if (slotsAtuais[index] >= 2 && index < 8) {
+    slotsAtuais[index] -= 2;
+    slotsAtuais[index + 1] = (slotsAtuais[index + 1] || 0) + 1;
+    renderizarSlots();
+    salvarDados();
+  }
+}
+
+function restaurarSlotsDescanso() {
+  const maximos = calcularSlotsMaximos();
+  for (let i = 0; i < 9; i++) {
+    if (slotsAtuais[i] < maximos[i]) {
+      slotsAtuais[i] = maximos[i];
+    }
+  }
+  renderizarSlots();
+  salvarDados();
+}
+
+function zerarTodosSlots() {
+  slotsAtuais = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+  renderizarSlots();
+  salvarDados();
+}
+
+function recalcularSlotsMagia() {
+  renderizarSlots();
+  salvarDados();
+}
+
 // --- RECALCULAR TUDO ---
 function recalcularTudo(deveSalvar = true) {
   let nivel = parseInt(document.getElementById('nivel').value) || 1;
   let expNecessario = nivel * 100;
   document.getElementById('exp-display').value = `${expAtual} / ${expNecessario}`;
 
-// 1. Pega os valores base digitados pelo usuário
   let forcaBase = parseFloat(document.getElementById('attr-forca').value) || 0;
   let agilidadeBase = parseFloat(document.getElementById('attr-agilidade').value) || 0;
   let vigorBase = parseFloat(document.getElementById('attr-vigor').value) || 0;
@@ -419,7 +570,6 @@ function recalcularTudo(deveSalvar = true) {
     bonusClasse.pv = 4; bonusClasse.san = 5; bonusClasse.ma = 10;
   }
 
-  // 2. Mapeia todos os buffs de itens equipados
   let buffsAcumulados = {};
   equipamentos.forEach(item => {
     let mult = parseInt(item.qtd) || 1;
@@ -430,7 +580,6 @@ function recalcularTudo(deveSalvar = true) {
     }
   });
 
-  // 3. Aplica os buffs aos atributos FINAIS
   let forca = forcaBase + (buffsAcumulados['attr-forca'] || 0);
   let agilidade = agilidadeBase + (buffsAcumulados['attr-agilidade'] || 0);
   let vigor = vigorBase + (buffsAcumulados['attr-vigor'] || 0);
@@ -439,45 +588,25 @@ function recalcularTudo(deveSalvar = true) {
   let carisma = carismaBase + (buffsAcumulados['attr-carisma'] || 0);
   let sorte = sorteBase + (buffsAcumulados['attr-sorte'] || 0);
 
-  // --- ATUALIZAÇÃO VISUAL DOS CARDS DE ATRIBUTOS ---
-  const listaAtributos = [
-    { id: 'forca', finalVal: forca },
-    { id: 'agilidade', finalVal: agilidade },
-    { id: 'vigor', finalVal: vigor },
-    { id: 'inteligencia', finalVal: inteligencia },
-    { id: 'presenca', finalVal: presenca },
-    { id: 'carisma', finalVal: carisma },
-    { id: 'sorte', finalVal: sorte }
-  ];
-
+  const listaAtributos = ['forca', 'agilidade', 'vigor', 'inteligencia', 'presenca', 'carisma', 'sorte'];
   listaAtributos.forEach(attr => {
-    let inputEl = document.getElementById(`attr-${attr.id}`);
-    let buffVal = buffsAcumulados[`attr-${attr.id}`] || 0;
+    let inputEl = document.getElementById(`attr-${attr}`);
+    let buffVal = buffsAcumulados[`attr-${attr}`] || 0;
     
-    if (inputEl && inputEl.parentNode) {
-      // Procura ou cria a tag que exibirá o total buffado
-      let tagDisplay = document.getElementById(`display-buff-${attr.id}`);
-      if (!tagDisplay) {
-        tagDisplay = document.createElement('span');
-        tagDisplay.id = `display-buff-${attr.id}`;
-        tagDisplay.className = 'attr-buff-display';
-        inputEl.parentNode.appendChild(tagDisplay);
-      }
+    let tagAntiga = document.getElementById(`tag-buff-${attr}`);
+    if (tagAntiga) tagAntiga.remove();
 
-      // Se houver buff/debuff ativo, altera a cor do input e exibe o valor final
-      if (buffVal !== 0) {
-        inputEl.classList.add('attr-buffed');
-        tagDisplay.innerText = `(${attr.finalVal})`;
-        tagDisplay.style.color = buffVal > 0 ? '#00ff88' : '#ff4655';
-        tagDisplay.style.display = 'inline-block';
-      } else {
-        inputEl.classList.remove('attr-buffed');
-        tagDisplay.style.display = 'none';
-      }
+    if (buffVal !== 0 && inputEl && inputEl.parentNode) {
+      let novaTag = document.createElement('span');
+      novaTag.id = `tag-buff-${attr}`;
+      novaTag.className = 'bonus-tag ativo';
+      novaTag.style.marginLeft = '8px';
+      novaTag.innerText = buffVal > 0 ? `+${buffVal} Buff` : `${buffVal} Debuff`;
+      
+      inputEl.parentNode.insertBefore(novaTag, inputEl.nextSibling);
     }
   });
-  
-  // 4. Recalcula Status MÁXIMOS com base nos atributos JÁ BUFFADOS
+
   document.getElementById('pv-max').value = 10 + vigor + bonusClasse.pv + (buffsAcumulados['status-pv'] || 0);
   document.getElementById('san-max').value = 4 + presenca + bonusClasse.san + (buffsAcumulados['status-san'] || 0);
   document.getElementById('pe-max').value = 5 + agilidade + vigor + bonusClasse.pe + (buffsAcumulados['status-pe'] || 0);
@@ -591,6 +720,8 @@ function recalcularTudo(deveSalvar = true) {
     containerCarga.classList.remove('carga-excedida');
     if (alertaMochila) alertaMochila.style.display = 'none';
   }
+
+  renderizarSlots();
 
   if (deveSalvar) salvarDados();
 }
@@ -796,142 +927,3 @@ function removerBloco(id) {
   renderBlocosAnotacoes();
   salvarDados();
 }
-// --- ESTRUTURA DE DADOS DOS SLOTS ---
-let slotsAtuais = [0, 0, 0, 0, 0, 0, 0, 0, 0]; // Index 0 = 1º Círculo, 8 = 9º Círculo
-
-// Tabela D&D Multiclass Spellcaster (Linha = Nível Mágico 1..20, Coluna = Círculos 1..9)
-const tabelaDND = [
-  [2, 0, 0, 0, 0, 0, 0, 0, 0], // Nv 1
-  [3, 0, 0, 0, 0, 0, 0, 0, 0], // Nv 2
-  [4, 2, 0, 0, 0, 0, 0, 0, 0], // Nv 3
-  [4, 3, 0, 0, 0, 0, 0, 0, 0], // Nv 4
-  [4, 3, 2, 0, 0, 0, 0, 0, 0], // Nv 5
-  [4, 3, 3, 0, 0, 0, 0, 0, 0], // Nv 6
-  [4, 3, 3, 1, 0, 0, 0, 0, 0], // Nv 7
-  [4, 3, 3, 2, 0, 0, 0, 0, 0], // Nv 8
-  [4, 3, 3, 3, 1, 0, 0, 0, 0], // Nv 9
-  [4, 3, 3, 3, 2, 0, 0, 0, 0], // Nv 10
-  [4, 3, 3, 3, 2, 1, 0, 0, 0], // Nv 11
-  [4, 3, 3, 3, 2, 1, 0, 0, 0], // Nv 12
-  [4, 3, 3, 3, 2, 1, 1, 0, 0], // Nv 13
-  [4, 3, 3, 3, 2, 1, 1, 0, 0], // Nv 14
-  [4, 3, 3, 3, 2, 1, 1, 1, 0], // Nv 15
-  [4, 3, 3, 3, 2, 1, 1, 1, 0], // Nv 16
-  [4, 3, 3, 3, 2, 1, 1, 1, 1], // Nv 17
-  [4, 3, 3, 3, 3, 1, 1, 1, 1], // Nv 18
-  [4, 3, 3, 3, 3, 2, 1, 1, 1], // Nv 19
-  [4, 3, 3, 3, 3, 2, 2, 1, 1]  // Nv 20
-];
-
-// Tabela de Classe Padrão
-const tabelaClassePadrao = {
-  Combatente:  [1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5],
-  Especialista:[1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10],
-  Místico:     [3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12]
-};
-
-// --- CÁLCULO DOS SLOTS MÁXIMOS NATURAIS ---
-function calcularSlotsMaximos() {
-  let maximos = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-
-  // 1. NEX / 5 (Apenas 1º Círculo)
-  let nex = parseFloat(document.getElementById('nex')?.value) || 0;
-  maximos[0] += Math.floor(nex / 5);
-
-  // 2. Bônus de Classe Padrão (Apenas 1º Círculo)
-  let nivelPersonagem = parseInt(document.getElementById('nivel-personagem')?.value) || 1;
-  nivelPersonagem = Math.min(Math.max(nivelPersonagem, 1), 20); // Limita entre 1 e 20
-  
-  let classeBase = document.getElementById('classe-base')?.value || 'Combatente';
-  if (tabelaClassePadrao[classeBase]) {
-    maximos[0] += tabelaClassePadrao[classeBase][nivelPersonagem - 1];
-  }
-
-  // 3. Multiclasse Mágica (Tabela D&D)
-  let nivelMagicoTotal = 0;
-  if (document.getElementById('classe-magica-1')?.checked) {
-    nivelMagicoTotal += parseInt(document.getElementById('nv-classe-magica-1')?.value) || 0;
-  }
-  if (document.getElementById('classe-magica-2')?.checked) {
-    nivelMagicoTotal += parseInt(document.getElementById('nv-classe-magica-2')?.value) || 0;
-  }
-
-  if (nivelMagicoTotal > 0) {
-    let nvIndex = Math.min(Math.max(nivelMagicoTotal, 1), 20) - 1;
-    let slotsDND = tabelaDND[nvIndex];
-    for (let i = 0; i < 9; i++) {
-      maximos[i] += slotsDND[i];
-    }
-  }
-
-  return maximos;
-}
-
-// --- RENDEREZAÇÃO NA TELA ---
-function renderizarSlots() {
-  const container = document.getElementById('circulos-grid');
-  if (!container) return;
-
-  const maximos = calcularSlotsMaximos();
-  container.innerHTML = '';
-
-  for (let i = 0; i < 9; i++) {
-    let circulo = i + 1;
-    let atual = slotsAtuais[i] || 0;
-    let max = maximos[i];
-
-    let card = document.createElement('div');
-    card.className = 'circulo-card';
-    card.innerHTML = `
-      <div class="circulo-info">${circulo}º Círculo</div>
-      <div class="circulo-controles">
-        <button type="button" class="btn-slot" onclick="alterarSlot(${i}, -1)">-</button>
-        <span><strong>${atual}</strong> / ${max}</span>
-        <button type="button" class="btn-slot" onclick="alterarSlot(${i}, 1)">+</button>
-        ${i < 8 ? `<button type="button" class="btn-fundir" ${atual < 2 ? 'disabled' : ''} onclick="fundirSlots(${i})">Fundir (2x ➔ 1x Nv.${circulo + 1})</button>` : ''}
-      </div>
-    `;
-    container.appendChild(card);
-  }
-}
-
-// --- ACOES DOS BOTOES ---
-function alterarSlot(index, delta) {
-  slotsAtuais[index] = Math.max(0, (slotsAtuais[index] || 0) + delta);
-  renderizarSlots();
-  salvarFicha(); // Chama a sua função existente do Firebase
-}
-
-function fundirSlots(index) {
-  if (slotsAtuais[index] >= 2 && index < 8) {
-    slotsAtuais[index] -= 2;
-    slotsAtuais[index + 1] = (slotsAtuais[index + 1] || 0) + 1;
-    renderizarSlots();
-    salvarFicha();
-  }
-}
-
-function restaurarSlotsDescanso() {
-  const maximos = calcularSlotsMaximos();
-  for (let i = 0; i < 9; i++) {
-    // Restaura até o máximo; se já tiver mais slots por sobrecarga, mantém.
-    if (slotsAtuais[i] < maximos[i]) {
-      slotsAtuais[i] = maximos[i];
-    }
-  }
-  renderizarSlots();
-  salvarFicha();
-}
-
-function zerarTodosSlots() {
-  slotsAtuais = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-  renderizarSlots();
-  salvarFicha();
-}
-
-function recalcularSlotsMagia() {
-  renderizarSlots();
-  salvarFicha();
-}
-
-// Chame renderizarSlots() ao carregar a página/ficha!
