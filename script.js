@@ -796,3 +796,142 @@ function removerBloco(id) {
   renderBlocosAnotacoes();
   salvarDados();
 }
+// --- ESTRUTURA DE DADOS DOS SLOTS ---
+let slotsAtuais = [0, 0, 0, 0, 0, 0, 0, 0, 0]; // Index 0 = 1º Círculo, 8 = 9º Círculo
+
+// Tabela D&D Multiclass Spellcaster (Linha = Nível Mágico 1..20, Coluna = Círculos 1..9)
+const tabelaDND = [
+  [2, 0, 0, 0, 0, 0, 0, 0, 0], // Nv 1
+  [3, 0, 0, 0, 0, 0, 0, 0, 0], // Nv 2
+  [4, 2, 0, 0, 0, 0, 0, 0, 0], // Nv 3
+  [4, 3, 0, 0, 0, 0, 0, 0, 0], // Nv 4
+  [4, 3, 2, 0, 0, 0, 0, 0, 0], // Nv 5
+  [4, 3, 3, 0, 0, 0, 0, 0, 0], // Nv 6
+  [4, 3, 3, 1, 0, 0, 0, 0, 0], // Nv 7
+  [4, 3, 3, 2, 0, 0, 0, 0, 0], // Nv 8
+  [4, 3, 3, 3, 1, 0, 0, 0, 0], // Nv 9
+  [4, 3, 3, 3, 2, 0, 0, 0, 0], // Nv 10
+  [4, 3, 3, 3, 2, 1, 0, 0, 0], // Nv 11
+  [4, 3, 3, 3, 2, 1, 0, 0, 0], // Nv 12
+  [4, 3, 3, 3, 2, 1, 1, 0, 0], // Nv 13
+  [4, 3, 3, 3, 2, 1, 1, 0, 0], // Nv 14
+  [4, 3, 3, 3, 2, 1, 1, 1, 0], // Nv 15
+  [4, 3, 3, 3, 2, 1, 1, 1, 0], // Nv 16
+  [4, 3, 3, 3, 2, 1, 1, 1, 1], // Nv 17
+  [4, 3, 3, 3, 3, 1, 1, 1, 1], // Nv 18
+  [4, 3, 3, 3, 3, 2, 1, 1, 1], // Nv 19
+  [4, 3, 3, 3, 3, 2, 2, 1, 1]  // Nv 20
+];
+
+// Tabela de Classe Padrão
+const tabelaClassePadrao = {
+  Combatente:  [1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5],
+  Especialista:[1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10],
+  Místico:     [3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12]
+};
+
+// --- CÁLCULO DOS SLOTS MÁXIMOS NATURAIS ---
+function calcularSlotsMaximos() {
+  let maximos = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+  // 1. NEX / 5 (Apenas 1º Círculo)
+  let nex = parseFloat(document.getElementById('nex')?.value) || 0;
+  maximos[0] += Math.floor(nex / 5);
+
+  // 2. Bônus de Classe Padrão (Apenas 1º Círculo)
+  let nivelPersonagem = parseInt(document.getElementById('nivel-personagem')?.value) || 1;
+  nivelPersonagem = Math.min(Math.max(nivelPersonagem, 1), 20); // Limita entre 1 e 20
+  
+  let classeBase = document.getElementById('classe-base')?.value || 'Combatente';
+  if (tabelaClassePadrao[classeBase]) {
+    maximos[0] += tabelaClassePadrao[classeBase][nivelPersonagem - 1];
+  }
+
+  // 3. Multiclasse Mágica (Tabela D&D)
+  let nivelMagicoTotal = 0;
+  if (document.getElementById('classe-magica-1')?.checked) {
+    nivelMagicoTotal += parseInt(document.getElementById('nv-classe-magica-1')?.value) || 0;
+  }
+  if (document.getElementById('classe-magica-2')?.checked) {
+    nivelMagicoTotal += parseInt(document.getElementById('nv-classe-magica-2')?.value) || 0;
+  }
+
+  if (nivelMagicoTotal > 0) {
+    let nvIndex = Math.min(Math.max(nivelMagicoTotal, 1), 20) - 1;
+    let slotsDND = tabelaDND[nvIndex];
+    for (let i = 0; i < 9; i++) {
+      maximos[i] += slotsDND[i];
+    }
+  }
+
+  return maximos;
+}
+
+// --- RENDEREZAÇÃO NA TELA ---
+function renderizarSlots() {
+  const container = document.getElementById('circulos-grid');
+  if (!container) return;
+
+  const maximos = calcularSlotsMaximos();
+  container.innerHTML = '';
+
+  for (let i = 0; i < 9; i++) {
+    let circulo = i + 1;
+    let atual = slotsAtuais[i] || 0;
+    let max = maximos[i];
+
+    let card = document.createElement('div');
+    card.className = 'circulo-card';
+    card.innerHTML = `
+      <div class="circulo-info">${circulo}º Círculo</div>
+      <div class="circulo-controles">
+        <button type="button" class="btn-slot" onclick="alterarSlot(${i}, -1)">-</button>
+        <span><strong>${atual}</strong> / ${max}</span>
+        <button type="button" class="btn-slot" onclick="alterarSlot(${i}, 1)">+</button>
+        ${i < 8 ? `<button type="button" class="btn-fundir" ${atual < 2 ? 'disabled' : ''} onclick="fundirSlots(${i})">Fundir (2x ➔ 1x Nv.${circulo + 1})</button>` : ''}
+      </div>
+    `;
+    container.appendChild(card);
+  }
+}
+
+// --- ACOES DOS BOTOES ---
+function alterarSlot(index, delta) {
+  slotsAtuais[index] = Math.max(0, (slotsAtuais[index] || 0) + delta);
+  renderizarSlots();
+  salvarFicha(); // Chama a sua função existente do Firebase
+}
+
+function fundirSlots(index) {
+  if (slotsAtuais[index] >= 2 && index < 8) {
+    slotsAtuais[index] -= 2;
+    slotsAtuais[index + 1] = (slotsAtuais[index + 1] || 0) + 1;
+    renderizarSlots();
+    salvarFicha();
+  }
+}
+
+function restaurarSlotsDescanso() {
+  const maximos = calcularSlotsMaximos();
+  for (let i = 0; i < 9; i++) {
+    // Restaura até o máximo; se já tiver mais slots por sobrecarga, mantém.
+    if (slotsAtuais[i] < maximos[i]) {
+      slotsAtuais[i] = maximos[i];
+    }
+  }
+  renderizarSlots();
+  salvarFicha();
+}
+
+function zerarTodosSlots() {
+  slotsAtuais = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+  renderizarSlots();
+  salvarFicha();
+}
+
+function recalcularSlotsMagia() {
+  renderizarSlots();
+  salvarFicha();
+}
+
+// Chame renderizarSlots() ao carregar a página/ficha!
