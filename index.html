@@ -4,8 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sistema de Fichas RPG</title>
-  <link rel="stylesheet" href="style.css?v=100">
-
+  <link rel="stylesheet" href="style.css?v=101">
 </head>
 <body>
 
@@ -40,10 +39,81 @@
   <div id="screen-gm-dashboard" class="screen-container">
     <div class="gm-header">
       <h2>Painel de Controle do Mestre</h2>
-      <button type="button" class="btn-danger" onclick="voltarParaSelecao()">Sair</button>
+      <div class="gm-header-actions">
+        <button type="button" class="btn-success" onclick="mestrePassarTurnoGeral()">⏳ Passar Turno de Todos</button>
+        <button type="button" class="btn-danger" onclick="voltarParaSelecao()">Sair</button>
+      </div>
     </div>
+    
+    <h2>{ FICHAS DOS JOGADORES }</h2>
     <div class="gm-cards-grid" id="gm-cards-list">
       <!-- Cards dos jogadores serão injetados aqui via JS -->
+    </div>
+
+    <!-- ÁREA DE CRIAÇÃO E GERENCIAMENTO DE EFEITOS DE STATUS DO MESTRE -->
+    <div class="gm-effects-builder">
+      <h3>{ GERENCIADOR DE EFEITOS DE STATUS (BANCO DE DADOS) }</h3>
+      <div class="effects-grid-form">
+        <label>Nome do Efeito:
+          <input type="text" id="gm-effect-nome" placeholder="Ex: Queimadura, Sangramento">
+        </label>
+        <label>Categoria:
+          <select id="gm-effect-cat">
+            <option value="Debuff">Debuff</option>
+            <option value="Buff">Buff</option>
+            <option value="Condição">Condição</option>
+          </select>
+        </label>
+        <label>É Contínuo (Dano/Cura por Turno)?
+          <select id="gm-effect-is-continuous">
+            <option value="nao">Não</option>
+            <option value="sim">Sim</option>
+          </select>
+        </label>
+        <label>Recurso Afetado por Turno:
+          <select id="gm-effect-recurso">
+            <option value="none">Nenhum</option>
+            <option value="pv">Vida (PV)</option>
+            <option value="pe">Esforço (PE)</option>
+            <option value="san">Sanidade (SAN)</option>
+            <option value="ma">Mana (MA)</option>
+          </select>
+        </label>
+        <label>Valor Base por Turno (+ / -):
+          <input type="number" id="gm-effect-valor-turno" value="0">
+        </label>
+        <label>Duração em Turnos (0 = Infinito):
+          <input type="number" id="gm-effect-duracao" value="0">
+        </label>
+        <label>Evolui de Nível após Turnos? (0 = Não):
+          <input type="number" id="gm-effect-turnos-evoluir" value="0">
+        </label>
+        <label>Tipo de Escalabilidade por Nível:
+          <select id="gm-effect-tipo-escala">
+            <option value="multiplicativo">Multiplicação (Base * Nível)</option>
+            <option value="percentual">Porcentagem (Base * %)</option>
+            <option value="adicao">Adição (Base + Acréscimo)</option>
+          </select>
+        </label>
+        <label>Fator de Escalamento (% ou Acréscimo):
+          <input type="number" id="gm-effect-fator-escala" value="0" step="0.1" placeholder="Ex: 50 para 50% ou 2 para +2">
+        </label>
+      </div>
+
+      <div class="buffs-builder" style="margin-bottom: 15px;">
+        <label>Adicionar Buff/Debuff Estático de Atributo/Perícia ao Efeito:</label>
+        <div class="buff-input-group">
+          <select id="gm-effect-buff-alvo"></select>
+          <input type="number" id="gm-effect-buff-valor" value="1" style="width:70px;">
+          <button type="button" class="btn-sub" onclick="adicionarBuffEfeitoGmMtemp()">+ Bônus/Penalidade</button>
+        </div>
+        <div class="buffs-tags" id="lista-gm-effect-buffs-temp"></div>
+      </div>
+
+      <button type="button" class="btn-primary" onclick="salvarEfeitoGlobalMestre()">Salvar Efeito no Banco de Dados</button>
+
+      <h4 style="margin-top: 20px; color: #fff;">Efeitos Salvos no Banco:</h4>
+      <ul class="effect-list" id="lista-efeitos-globais-mestre" style="margin-top: 10px;"></ul>
     </div>
   </div>
 
@@ -51,12 +121,15 @@
   <div id="screen-sheet" class="screen-container">
     
     <div class="top-nav-bar">
-      <button type="button" class="btn-sub" onclick="voltarParaSelecao()">← Trocar Ficha / Sair</button>
+      <div>
+        <button type="button" class="btn-sub" onclick="voltarParaSelecao()">← Trocar Ficha / Sair</button>
+        <button type="button" class="btn-success" style="margin-left: 10px;" onclick="passarTurnoJogador()">⏳ Passar Turno</button>
+      </div>
       <span class="ficha-label" id="label-ficha-ativa">Editando Ficha: Nenhuma</span>
       <span class="badge-gm" id="badge-gm-view" style="display:none;">MODO MESTRE</span>
     </div>
 
-<!-- CABEÇALHO DA FICHA -->
+    <!-- CABEÇALHO DA FICHA -->
     <header class="ficha-header">
       <div class="header-grid">
         <div class="field field-medium">
@@ -150,8 +223,29 @@
           </div>
         </div>
         <div class="card-status">
-          <label>Defesa (DEF)</label>
+          <label>
+            Defesa (DEF) 
+            <button type="button" class="btn-def-asterisk" onclick="toggleDefesaTooltip(event)">*</button>
+          </label>
           <input type="number" id="def-val" value="6" readonly>
+          
+          <!-- TOOLTIP POPUP DE DEFESAS ESPECÍFICAS -->
+          <div class="defensa-tooltip" id="defensa-tooltip-box">
+            <h4>Defesas Específicas / Resistências</h4>
+            <div class="defensa-grid">
+              <div class="defensa-item"><label>Perfuração:</label><input type="number" id="def-perfuracao" value="0" onchange="salvarDados()"></div>
+              <div class="defensa-item"><label>Queimadura:</label><input type="number" id="def-queimadura" value="0" onchange="salvarDados()"></div>
+              <div class="defensa-item"><label>Corte:</label><input type="number" id="def-corte" value="0" onchange="salvarDados()"></div>
+              <div class="defensa-item"><label>Impacto:</label><input type="number" id="def-impacto" value="0" onchange="salvarDados()"></div>
+              <div class="defensa-item"><label>Balístico:</label><input type="number" id="def-balistico" value="0" onchange="salvarDados()"></div>
+              <div class="defensa-item"><label>Eletricidade:</label><input type="number" id="def-eletricidade" value="0" onchange="salvarDados()"></div>
+              <div class="defensa-item"><label>Fogo:</label><input type="number" id="def-fogo" value="0" onchange="salvarDados()"></div>
+              <div class="defensa-item"><label>Frio:</label><input type="number" id="def-frio" value="0" onchange="salvarDados()"></div>
+              <div class="defensa-item"><label>Ácido:</label><input type="number" id="def-acido" value="0" onchange="salvarDados()"></div>
+              <div class="defensa-item"><label>Veneno:</label><input type="number" id="def-veneno" value="0" onchange="salvarDados()"></div>
+              <div class="defensa-item" style="grid-column: span 2;"><label>Mágico:</label><input type="number" id="def-magico" value="0" onchange="salvarDados()"></div>
+            </div>
+          </div>
         </div>
         <div class="card-status">
           <label>Evasão (EVA)</label>
@@ -287,6 +381,19 @@
           
           <textarea id="item-desc" rows="2" placeholder="Descrição do item..."></textarea>
 
+          <!-- EFEITO DE TURNO DO ITEM -->
+          <div class="creator-fields" style="background:#18181b; padding:8px; border-radius:4px; border:1px solid #29292e;">
+            <label class="checkbox-label"><strong>Efeito Continuo por Turno?</strong></label>
+            <select id="item-turno-recurso">
+              <option value="none">Nenhum</option>
+              <option value="pv">Vida (PV)</option>
+              <option value="pe">Esforço (PE)</option>
+              <option value="san">Sanidade (SAN)</option>
+              <option value="ma">Mana (MA)</option>
+            </select>
+            <input type="number" id="item-turno-valor" value="0" placeholder="Qtd/Turno (+ ou -)">
+          </div>
+
           <div class="buffs-builder">
             <label>Adicionar Buff ao Item:</label>
             <div class="buff-input-group">
@@ -319,15 +426,13 @@
 
       <!-- ABA EFEITOS -->
       <div id="tab-efeitos" class="tab-content">
-        <h2>{ EFEITOS DE STATUS }</h2>
+        <h2>{ EFEITOS DE STATUS ATIVOS }</h2>
         <div class="add-effect">
-          <input type="text" id="effect-name" placeholder="Nome do Efeito / Condição">
-          <select id="effect-category">
-            <option value="Buff">Buff</option>
-            <option value="Debuff">Debuff</option>
-            <option value="Condição">Condição</option>
+          <label for="select-efeitos-globais">Adicionar Efeito Salvo pelo Mestre:</label>
+          <select id="select-efeitos-globais" style="min-width: 200px;">
+            <option value="">Selecione um efeito...</option>
           </select>
-          <button type="button" class="btn-primary" onclick="adicionarEfeito()">Adicionar Efeito</button>
+          <button type="button" class="btn-primary" onclick="adicionarEfeitoGlobalNaFicha()">Aplicar Efeito</button>
         </div>
         <ul class="effect-list" id="lista-efeitos"></ul>
       </div>
@@ -360,6 +465,7 @@
       </div>
     </div>
   </div>
+
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="script.js"></script>
