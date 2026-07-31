@@ -29,8 +29,9 @@ body { background-color: #121214; color: #e1e1e6; padding-bottom: 50px; }
    2. PAINEL / DASHBOARD DO MESTRE
    ========================================================================== */
 #screen-gm-dashboard { padding: 20px; max-width: 1300px; margin: 0 auto; }
-.gm-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ff4655; padding-bottom: 15px; margin-bottom: 20px; }
-.gm-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
+.gm-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #ff4655; padding-bottom: 15px; margin-bottom: 20px; gap: 10px; flex-wrap: wrap; }
+.gm-header-actions { display: flex; gap: 10px; align-items: center; }
+.gm-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; margin-bottom: 30px; }
 
 .gm-card { background: #202024; border: 1px solid #29292e; border-left: 5px solid #00e1ff; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; gap: 10px; transition: transform 0.2s; }
 .gm-card:hover { transform: translateY(-3px); }
@@ -42,33 +43,18 @@ body { background-color: #121214; color: #e1e1e6; padding-bottom: 50px; }
 .badge-gm { background: #00e1ff; color: #000; font-weight: bold; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; }
 
 /* BARRA DE NAVEGAÇÃO SUPERIOR DA FICHA */
-.top-nav-bar { display: flex; justify-content: space-between; align-items: center; background: #121214; padding: 10px 20px; border-bottom: 1px solid #29292e; }
-.ficha-label { color: #00ff88; font-weight: bold; }
+.top-nav-bar { display: flex; justify-content: space-between; align-items: center; background: #121214; padding: 10px 20px; border-bottom: 1px solid #29292e; gap: 10px; }
 
 /* ==========================================================================
    3. ESTILOS DA FICHA DO JOGADOR
    ========================================================================== */
 /* HEADER CABEÇALHO REDIMENSIONADO */
 .ficha-header { background: #18181b; padding: 20px; border-bottom: 3px solid #ff4655; }
-.header-grid { display: flex; flex-wrap: wrap; gap: 12px; }
+.header-grid { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
 
 .field { display: flex; flex-direction: column; gap: 4px; }
 .field label { font-size: 0.82rem; color: #a8a8b3; font-weight: bold; }
 .field input, .field select { background: #202024; border: 1px solid #29292e; color: #fff; padding: 8px; border-radius: 4px; font-size: 0.95rem; }
-
-/* LARGURAS PROPORCIONAIS DOS CAMPOS DO CABEÇALHO */
-.header-grid { 
-  display: flex; 
-  flex-wrap: wrap; 
-  gap: 12px; 
-  align-items: flex-end; /* Alinha os labels e inputs na base para nao quebrar a linha */
-}
-
-.field { 
-  display: flex; 
-  flex-direction: column; 
-  gap: 4px; 
-}
 
 .field-small { flex: 1 1 80px; min-width: 70px; max-width: 110px; }
 .field-medium { flex: 2 1 150px; min-width: 130px; }
@@ -83,11 +69,20 @@ body { background-color: #121214; color: #e1e1e6; padding-bottom: 50px; }
 .status-section { background: #1f1f23; padding: 15px 20px; border-bottom: 1px solid #29292e; }
 .status-section h2 { border-left: 4px solid #ff4655; padding-left: 8px; margin-bottom: 12px; color: #ff4655; font-size: 1.2rem; }
 .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
-.card-status { background: #121214; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #29292e; display: flex; flex-direction: column; gap: 5px; }
-.card-status label { font-size: 0.85rem; color: #ff4655; font-weight: bold; }
+.card-status { background: #121214; padding: 10px; border-radius: 6px; text-align: center; border: 1px solid #29292e; display: flex; flex-direction: column; gap: 5px; position: relative; }
+.card-status label { font-size: 0.85rem; color: #ff4655; font-weight: bold; display: flex; justify-content: center; align-items: center; gap: 4px; }
 .card-status input { background: #202024; border: 1px solid #ff4655; color: #fff; padding: 5px; border-radius: 4px; text-align: center; width: 100%; font-weight: bold; font-size: 1.1rem; }
 .inline-inputs { display: flex; align-items: center; justify-content: center; gap: 4px; }
 .inline-inputs input { width: 45%; }
+
+/* DEFESA ESPECÍFICA POPUP / TOOLTIP */
+.btn-def-asterisk { background: #ff4655; color: #fff; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 0.75rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.defensa-tooltip { display: none; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); background: #18181b; border: 2px solid #ff4655; border-radius: 8px; padding: 12px; width: 260px; z-index: 100; box-shadow: 0 10px 20px rgba(0,0,0,0.8); text-align: left; margin-top: 5px; }
+.card-status:hover .defensa-tooltip, .defensa-tooltip.active { display: block; }
+.defensa-tooltip h4 { color: #00ff88; font-size: 0.9rem; margin-bottom: 8px; border-bottom: 1px solid #29292e; padding-bottom: 4px; }
+.defensa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.defensa-item { display: flex; flex-direction: column; font-size: 0.75rem; color: #a8a8b3; }
+.defensa-item input { font-size: 0.85rem; padding: 2px 4px; border-color: #29292e; text-align: center; }
 
 /* ABAS DE NAVEGAÇÃO PRINCIPAL */
 nav.tabs { display: flex; background: #18181b; border-bottom: 1px solid #29292e; overflow-x: auto; }
@@ -169,7 +164,7 @@ h2 { margin: 15px 0 10px 0; border-left: 4px solid #ff4655; padding-left: 8px; f
 
 /* SYSTEM DE BUFFS DO ITEM */
 .buffs-builder { background: #18181b; padding: 10px; border-radius: 4px; border: 1px solid #29292e; display: flex; flex-direction: column; gap: 8px; }
-.buff-input-group { display: flex; gap: 8px; align-items: center; }
+.buff-input-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .buff-input-group select, .buff-input-group input { background: #121214; border: 1px solid #4d4d57; color: #fff; padding: 6px; border-radius: 4px; }
 .buffs-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
 .buff-tag { background: #ff4655; color: #fff; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; display: flex; align-items: center; gap: 6px; }
@@ -186,10 +181,22 @@ h2 { margin: 15px 0 10px 0; border-left: 4px solid #ff4655; padding-left: 8px; f
 .item-card-actions { display: flex; gap: 8px; }
 
 /* ANOTAÇÕES & EFEITOS */
-.add-effect { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+.add-effect { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; align-items: center; }
 .add-effect input, .add-effect select { background: #202024; border: 1px solid #4d4d57; color: #fff; padding: 8px; border-radius: 4px; }
 .effect-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
-.effect-item { background: #202024; padding: 10px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #29292e; }
+.effect-item { background: #202024; padding: 12px; border-radius: 6px; display: flex; flex-direction: column; gap: 8px; border: 1px solid #29292e; border-left: 4px solid #00e1ff; }
+.effect-item-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+.effect-item-details { font-size: 0.85rem; color: #a8a8b3; background: #121214; padding: 8px; border-radius: 4px; display: flex; gap: 15px; flex-wrap: wrap; }
+.effect-item-controls { display: flex; align-items: center; gap: 10px; }
+.effect-item-controls input { width: 60px; background: #121214; border: 1px solid #ff4655; color: #fff; text-align: center; padding: 4px; border-radius: 4px; font-weight: bold; }
+
+/* PAINEL DO MESTRE - CRIADOR DE EFEITOS */
+.gm-effects-builder { background: #202024; border: 1px solid #29292e; border-radius: 8px; padding: 20px; margin-top: 25px; }
+.gm-effects-builder h3 { color: #00e1ff; margin-bottom: 15px; border-left: 4px solid #00e1ff; padding-left: 8px; }
+.effects-grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 15px; }
+.effects-grid-form label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: #a8a8b3; font-weight: bold; }
+.effects-grid-form input, .effects-grid-form select { background: #121214; border: 1px solid #4d4d57; color: #fff; padding: 8px; border-radius: 4px; }
+
 .anotacoes-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
 .anotacoes-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
 .bloco-card { background: #202024; padding: 15px; border-radius: 6px; border: 1px solid #29292e; display: flex; flex-direction: column; gap: 10px; }
@@ -199,55 +206,32 @@ textarea { width: 100%; background: #202024; color: #fff; border: 1px solid #292
 /* BOTÕES */
 .btn-primary { background: #ff4655; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
 .btn-primary:hover { background: #e03e4d; }
+.btn-success { background: #28a745; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+.btn-success:hover { background: #218838; }
 .btn-sub { background: #4d4d57; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
 .btn-danger { background: #cc2936; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
 
-/* ==========================================================================
-   4. ESTILOS DE SLOTS DE MAGIA & MULTICLASSE
-   ========================================================================== */
+/* --- SLOTS DE MAGIA --- */
 .slots-container {
-  background: #18181b;
-  border: 1px solid #29292e;
-  padding: 20px;
+  background: rgba(18, 18, 24, 0.85);
+  border: 1px solid #333;
+  padding: 15px;
   border-radius: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.slots-container h3 {
-  color: #ff4655;
-  font-size: 1.2rem;
+  margin-top: 10px;
 }
 
 .multiclass-box {
-  background: #202024;
-  border: 1px solid #29292e;
-  padding: 15px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 10px 15px;
   border-radius: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.multiclass-box h4 {
-  color: #00e1ff;
-  font-size: 1rem;
+  margin-bottom: 15px;
 }
 
 .multiclass-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 0.9rem;
-}
-
-.multiclass-row label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  color: #e1e1e6;
+  gap: 10px;
+  margin-top: 8px;
 }
 
 .multiclass-row input[type="number"] {
@@ -263,7 +247,7 @@ textarea { width: 100%; background: #202024; color: #fff; border: 1px solid #292
 .slots-actions {
   display: flex;
   gap: 10px;
-  flex-wrap: wrap;
+  margin-bottom: 15px;
 }
 
 .btn-restaurar {
@@ -271,14 +255,9 @@ textarea { width: 100%; background: #202024; color: #fff; border: 1px solid #292
   color: #fff;
   border: none;
   padding: 8px 15px;
-  border-radius: 4px;
+  border-radius: 5px;
   cursor: pointer;
   font-weight: bold;
-  transition: 0.2s;
-}
-
-.btn-restaurar:hover {
-  background: #218838;
 }
 
 .btn-zerar {
@@ -286,79 +265,57 @@ textarea { width: 100%; background: #202024; color: #fff; border: 1px solid #292
   color: #fff;
   border: none;
   padding: 8px 15px;
-  border-radius: 4px;
+  border-radius: 5px;
   cursor: pointer;
   font-weight: bold;
-  transition: 0.2s;
-}
-
-.btn-zerar:hover {
-  background: #c82333;
 }
 
 .circulos-grid {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .circulo-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #202024;
-  padding: 10px 15px;
+  background: #1e1e26;
+  padding: 8px 12px;
   border-radius: 6px;
-  border-left: 4px solid #00e1ff;
-  border: 1px solid #29292e;
-  border-left-width: 4px;
+  border-left: 4px solid #00d2ff;
 }
 
 .circulo-info {
   font-weight: bold;
-  color: #fff;
-  min-width: 110px;
+  min-width: 120px;
 }
 
 .circulo-controles {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .btn-slot {
-  background: #29292e;
+  background: #333;
   color: #fff;
-  border: 1px solid #4d4d57;
-  width: 30px;
-  height: 30px;
+  border: 1px solid #555;
+  width: 28px;
+  height: 28px;
   border-radius: 4px;
   cursor: pointer;
   font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: 0.2s;
-}
-
-.btn-slot:hover {
-  background: #4d4d57;
 }
 
 .btn-fundir {
   background: #8a2be2;
   color: #fff;
   border: none;
-  padding: 6px 10px;
+  padding: 4px 8px;
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.8rem;
-  font-weight: bold;
-  transition: 0.2s;
-}
-
-.btn-fundir:hover:not(:disabled) {
-  background: #7a22cc;
 }
 
 .btn-fundir:disabled {
