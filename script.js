@@ -68,18 +68,34 @@ const tabelaClassePadrao = {
   Místico:     [3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12]
 };
 
+let timerDebounce = null;
+
 window.onload = () => {
   popularOpcoesBuff();
   renderPericias();
   renderizarSlots();
 
-  // OUVINTE EM TEMPO REAL: Toda vez que um input, select ou textarea mudo na tela, salva direto no Firebase!
-  document.getElementById('screen-sheet').addEventListener('input', (e) => {
-    // Evita disparar salvamento desnecessário enquanto digita no modal de XP
-    if (e.target.closest('#modal-xp')) return; 
-    
-    // Recalcula atributos e envia a atualização ao Firebase
-    recalcularTudo(true);
+  const telaFicha = document.getElementById('screen-sheet');
+
+  // 1. Para Campos Numéricos e Checkboxes: Atualiza INSTANTANEAMENTE ao mudar
+  telaFicha.addEventListener('change', (e) => {
+    if (e.target.closest('#modal-xp')) return;
+    // Se não for uma área de texto grande, salva na hora
+    if (e.target.tagName !== 'TEXTAREA') {
+      recalcularTudo(true);
+    }
+  });
+
+  // 2. Para Textos Longos (TEXTAREA e INPUT text): Usa DEBOUNCE (espera 600ms após a última tecla)
+  telaFicha.addEventListener('input', (e) => {
+    if (e.target.closest('#modal-xp')) return;
+
+    // Se estiver digitando em campos de texto, não salva a cada letra!
+    // Espera o jogador dar uma pausa de 0.6s na digitação para enviar ao Firebase.
+    clearTimeout(timerDebounce);
+    timerDebounce = setTimeout(() => {
+      recalcularTudo(true);
+    }, 600); 
   });
 };
 
