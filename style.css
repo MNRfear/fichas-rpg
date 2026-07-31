@@ -202,27 +202,52 @@ textarea { width: 100%; background: #202024; color: #fff; border: 1px solid #292
 .btn-sub { background: #4d4d57; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
 .btn-danger { background: #cc2936; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
 
-/* --- SLOTS DE MAGIA --- */
+/* ==========================================================================
+   4. ESTILOS DE SLOTS DE MAGIA & MULTICLASSE
+   ========================================================================== */
 .slots-container {
-  background: rgba(18, 18, 24, 0.85);
-  border: 1px solid #333;
-  padding: 15px;
+  background: #18181b;
+  border: 1px solid #29292e;
+  padding: 20px;
   border-radius: 8px;
-  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.slots-container h3 {
+  color: #ff4655;
+  font-size: 1.2rem;
 }
 
 .multiclass-box {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 10px 15px;
+  background: #202024;
+  border: 1px solid #29292e;
+  padding: 15px;
   border-radius: 6px;
-  margin-bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.multiclass-box h4 {
+  color: #00e1ff;
+  font-size: 1rem;
 }
 
 .multiclass-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-top: 8px;
+  gap: 12px;
+  font-size: 0.9rem;
+}
+
+.multiclass-row label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  color: #e1e1e6;
 }
 
 .multiclass-row input[type="number"] {
@@ -238,7 +263,7 @@ textarea { width: 100%; background: #202024; color: #fff; border: 1px solid #292
 .slots-actions {
   display: flex;
   gap: 10px;
-  margin-bottom: 15px;
+  flex-wrap: wrap;
 }
 
 .btn-restaurar {
@@ -246,9 +271,14 @@ textarea { width: 100%; background: #202024; color: #fff; border: 1px solid #292
   color: #fff;
   border: none;
   padding: 8px 15px;
-  border-radius: 5px;
+  border-radius: 4px;
   cursor: pointer;
   font-weight: bold;
+  transition: 0.2s;
+}
+
+.btn-restaurar:hover {
+  background: #218838;
 }
 
 .btn-zerar {
@@ -256,57 +286,79 @@ textarea { width: 100%; background: #202024; color: #fff; border: 1px solid #292
   color: #fff;
   border: none;
   padding: 8px 15px;
-  border-radius: 5px;
+  border-radius: 4px;
   cursor: pointer;
   font-weight: bold;
+  transition: 0.2s;
+}
+
+.btn-zerar:hover {
+  background: #c82333;
 }
 
 .circulos-grid {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .circulo-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #1e1e26;
-  padding: 8px 12px;
+  background: #202024;
+  padding: 10px 15px;
   border-radius: 6px;
-  border-left: 4px solid #00d2ff;
+  border-left: 4px solid #00e1ff;
+  border: 1px solid #29292e;
+  border-left-width: 4px;
 }
 
 .circulo-info {
   font-weight: bold;
-  min-width: 120px;
+  color: #fff;
+  min-width: 110px;
 }
 
 .circulo-controles {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .btn-slot {
-  background: #333;
+  background: #29292e;
   color: #fff;
-  border: 1px solid #555;
-  width: 28px;
-  height: 28px;
+  border: 1px solid #4d4d57;
+  width: 30px;
+  height: 30px;
   border-radius: 4px;
   cursor: pointer;
   font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.2s;
+}
+
+.btn-slot:hover {
+  background: #4d4d57;
 }
 
 .btn-fundir {
   background: #8a2be2;
   color: #fff;
   border: none;
-  padding: 4px 8px;
+  padding: 6px 10px;
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.8rem;
+  font-weight: bold;
+  transition: 0.2s;
+}
+
+.btn-fundir:hover:not(:disabled) {
+  background: #7a22cc;
 }
 
 .btn-fundir:disabled {
