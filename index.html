@@ -222,6 +222,7 @@
           <button type="button" class="sub-tab-btn active" onclick="openSubTab('skills-sub', event)">Skills</button>
           <button type="button" class="sub-tab-btn" onclick="openSubTab('feiticos-sub', event)">Feitiços</button>
           <button type="button" class="sub-tab-btn" onclick="openSubTab('rituais-sub', event)">Rituais</button>
+          <button type="button" class="sub-tab-btn" onclick="openSubTab('slots-sub', event)">Slots de Magia</button>
         </div>
 
         <div id="subtab-skills-sub" class="sub-tab-content active">
@@ -234,6 +235,41 @@
           <textarea id="rituais-texto" rows="12" placeholder="Digite seus rituais..." onchange="salvarDados()"></textarea>
         </div>
       </div>
+      <div id="slots-sub" class="sub-tab-content">
+  <div class="slots-container">
+    <h3>Gerenciamento de Slots de Magia</h3>
+    
+    <!-- Configuração de Multiclasse Mágica -->
+    <div class="multiclass-box">
+      <h4>Multiclasse Mágica</h4>
+      <div class="multiclass-row">
+        <label>
+          <input type="checkbox" id="classe-magica-1" onchange="recalcularSlotsMagia()"> Classe Adicional 1 é Mágica
+        </label>
+        <span>Nível:</span>
+        <input type="number" id="nv-classe-magica-1" value="0" min="0" max="20" onchange="recalcularSlotsMagia()">
+      </div>
+      <div class="multiclass-row">
+        <label>
+          <input type="checkbox" id="classe-magica-2" onchange="recalcularSlotsMagia()"> Classe Adicional 2 é Mágica
+        </label>
+        <span>Nível:</span>
+        <input type="number" id="nv-classe-magica-2" value="0" min="0" max="20" onchange="recalcularSlotsMagia()">
+      </div>
+    </div>
+
+    <!-- Ações Globais (Restaurar e Zerar) -->
+    <div class="slots-actions">
+      <button type="button" class="btn-restaurar" onclick="restaurarSlotsDescanso()">💤 Descanso (Restaurar Slots)</button>
+      <button type="button" class="btn-zerar" onclick="zerarTodosSlots()">🗑️ Zerar Todos os Slots</button>
+    </div>
+
+    <!-- Lista dos Círculos de Magia (1º ao 9º) -->
+    <div class="circulos-grid" id="circulos-grid">
+      <!-- Gerado dinamicamente via JS -->
+    </div>
+  </div>
+</div>
 
       <!-- ABA INVENTÁRIO -->
       <div id="tab-inventario" class="tab-content">
