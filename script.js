@@ -1,6 +1,4 @@
-/* ==========================================================================
-   CONFIGURAÇÃO E INICIALIZAÇÃO DO FIREBASE
-   ========================================================================== */
+// CONFIGURAÇÃO DO FIREBASE
 const firebaseConfig = {
   apiKey: "AIzaSyDmO4b4K_5K9UjMA7sOM99hHlj5kxuYbis",
   authDomain: "meu-rpg-fichas-86b00.firebaseapp.com",
@@ -12,959 +10,1310 @@ const firebaseConfig = {
 };
 
 // Inicializa o Firebase
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 
-const SENHA_MESTRE = "2510"; // Altere para a senha desejada
+// SENHA PARA O MESTRE
+const SENHA_MESTRE = "2510";
 
-// Estado Global da Aplicação
-let fichaAtualId = null;
-let fichaAtualData = null;
-let modoAcessoAtual = 'player';
-let buffsItemTemp = [];
-let buffsGmEffectTemp = [];
-let escutandoMestreRef = null;
-let escutandoFichaRef = null;
+let idFichaAtual = null;
+let éMestre = false;
+let escutandoFirebaseRef = null;
 
-// Perícias do sistema e seus atributos de base
-const LISTA_PERICIAS = [
-  { nome: "Acrobacia", attr: "agilidade" },
-  { nome: "Adestramento", attr: "carisma" },
-  { nome: "Artes", attr: "presenca" },
-  { nome: "Atletismo", attr: "forca" },
-  { nome: "Atualidades", attr: "inteligencia" },
-  { nome: "Ciência", attr: "inteligencia" },
-  { nome: "Crime", attr: "agilidade" },
-  { nome: "Diplomacia", attr: "carisma" },
-  { nome: "Enganação", attr: "carisma" },
-  { nome: "Fortitude", attr: "vigor" },
-  { nome: "Furtividade", attr: "agilidade" },
-  { nome: "Intimidação", attr: "presenca" },
-  { nome: "Intuição", attr: "presenca" },
-  { nome: "Investigação", attr: "inteligencia" },
-  { nome: "Luta", attr: "forca" },
-  { nome: "Medicina", attr: "inteligencia" },
-  { nome: "Ocultismo", attr: "inteligencia" },
-  { nome: "Percepção", attr: "presenca" },
-  { nome: "Pilotagem", attr: "agilidade" },
-  { nome: "Pontaria", attr: "agilidade" },
-  { nome: "Reflexos", attr: "agilidade" },
-  { nome: "Religião", attr: "presenca" },
-  { nome: "Sobrevivência", attr: "inteligencia" },
-  { nome: "Vontade", attr: "presenca" }
+const periciasLista = [
+  "Acrobacia", "Arcanismo", "Adestramento", "Artes", "Atletismo", "Atualidades", "Ciência",
+  "Diplomacia", "Enganação", "Furto", "Fortitude", "Furtividade", "Historia", "Iniciativa",
+  "Intimidação", "Intuição", "Investigação", "Luta", "Medicina", "Magia", "Natureza",
+  "Ocultismo", "Percepção", "Produção", "Pilotagem", "Pontaria", "Reflexos", "Religião",
+  "Sobrevivência", "Tática", "Tolerancia", "Tecnologia", "Vontade"
 ];
 
-/* ==========================================================================
-   INICIALIZAÇÃO & GERENCIAMENTO DE TELAS
-   ========================================================================== */
-document.addEventListener("DOMContentLoaded", () => {
-  preencherSelectsDeBuffs();
-  gerarGridPericias();
-  verificarSessaoSalva();
-  escutarEfeitosGlobaisMestre();
-});
+let dadosPericias = {};
+let inventario = [];
+let equipamentos = [];
+let efeitos = [];
+let blocosAnotacoes = [];
+let buffsTempItem = [];
+let buffsTempGmEffect = [];
+let efeitosGlobaisSalvos = {};
+let defesasEspecificas = { perfuracao:0, queimadura:0, corte:0, impacto:0, balistico:0, eletricidade:0, fogo:0, frio:0, acido:0, veneno:0, magico:0 };
+let expAtual = 0;
 
+// --- DADOS DOS SLOTS DE MAGIA ---
+let slotsAtuais = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+
+const tabelaDND = [
+  [2, 0, 0, 0, 0, 0, 0, 0, 0],
+  [3, 0, 0, 0, 0, 0, 0, 0, 0],
+  [4, 2, 0, 0, 0, 0, 0, 0, 0],
+  [4, 3, 0, 0, 0, 0, 0, 0, 0],
+  [4, 3, 2, 0, 0, 0, 0, 0, 0],
+  [4, 3, 3, 0, 0, 0, 0, 0, 0],
+  [4, 3, 3, 1, 0, 0, 0, 0, 0],
+  [4, 3, 3, 2, 0, 0, 0, 0, 0],
+  [4, 3, 3, 3, 1, 0, 0, 0, 0],
+  [4, 3, 3, 3, 2, 0, 0, 0, 0],
+  [4, 3, 3, 3, 2, 1, 0, 0, 0],
+  [4, 3, 3, 3, 2, 1, 0, 0, 0],
+  [4, 3, 3, 3, 2, 1, 1, 0, 0],
+  [4, 3, 3, 3, 2, 1, 1, 0, 0],
+  [4, 3, 3, 3, 2, 1, 1, 1, 0],
+  [4, 3, 3, 3, 2, 1, 1, 1, 0],
+  [4, 3, 3, 3, 2, 1, 1, 1, 1],
+  [4, 3, 3, 3, 3, 1, 1, 1, 1],
+  [4, 3, 3, 3, 3, 2, 1, 1, 1],
+  [4, 3, 3, 3, 3, 2, 2, 1, 1]
+];
+
+const tabelaClassePadrao = {
+  Combatente:  [1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5],
+  Especialista:[1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10],
+  Místico:     [3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12]
+};
+
+let timerDebounce = null;
+
+window.onload = () => {
+  popularOpcoesBuff();
+  renderPericias();
+  renderizarSlots();
+  escutarEfeitosGlobais();
+
+  const telaFicha = document.getElementById('screen-sheet');
+
+  telaFicha.addEventListener('change', (e) => {
+    if (e.target.closest('#modal-xp')) return;
+    if (e.target.tagName !== 'TEXTAREA') {
+      recalcularTudo(true);
+    }
+  });
+
+  telaFicha.addEventListener('input', (e) => {
+    if (e.target.closest('#modal-xp')) return;
+    clearTimeout(timerDebounce);
+    timerDebounce = setTimeout(() => {
+      recalcularTudo(true);
+    }, 600); 
+  });
+};
+
+// --- SINCRONIZAÇÃO DE EFEITOS GLOBAIS (BANCO DE DADOS) ---
+function escutarEfeitosGlobais() {
+  database.ref('efeitosGlobais').on('value', (snapshot) => {
+    efeitosGlobaisSalvos = snapshot.val() || {};
+    renderEfeitosGlobaisNoMestre();
+    popularSelectEfeitosGlobais();
+  });
+}
+
+// --- NAVEGAÇÃO DE MODO E TELAS ---
 function setModoAcesso(modo) {
-  modoAcessoAtual = modo;
-  const btnPlayer = document.getElementById("btn-mode-player");
-  const btnGm = document.getElementById("btn-mode-gm");
-  const panelPlayer = document.getElementById("panel-player");
-  const panelGm = document.getElementById("panel-gm");
-
-  if (modo === 'player') {
-    btnPlayer.classList.add("active");
-    btnGm.classList.remove("active");
-    panelPlayer.classList.add("active");
-    panelGm.classList.remove("active");
-  } else {
-    btnGm.classList.add("active");
-    btnPlayer.classList.remove("active");
-    panelGm.classList.add("active");
-    panelPlayer.classList.remove("active");
-  }
+  document.getElementById('btn-mode-player').classList.toggle('active', modo === 'player');
+  document.getElementById('btn-mode-gm').classList.toggle('active', modo === 'gm');
+  document.getElementById('panel-player').classList.toggle('active', modo === 'player');
+  document.getElementById('panel-gm').classList.toggle('active', modo === 'gm');
 }
 
-function trocarTela(idTela) {
-  document.querySelectorAll(".screen-container").forEach(el => el.classList.remove("active"));
-  const telaDestino = document.getElementById(idTela);
-  if (telaDestino) telaDestino.classList.add("active");
-}
-
-function verificarSessaoSalva() {
-  const fichaSalva = localStorage.getItem("rpg_ficha_id");
-  const modoMestre = localStorage.getItem("rpg_modo_mestre");
-
-  if (modoMestre === "true") {
-    entrarComoMestre(true);
-  } else if (fichaSalva) {
-    document.getElementById("input-player-id").value = fichaSalva;
-    entrarComoJogador();
-  } else {
-    trocarTela("screen-select");
-  }
+function mostrarTela(screenId) {
+  document.querySelectorAll('.screen-container').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
 }
 
 function voltarParaSelecao() {
-  if (escutandoFichaRef && fichaAtualId) {
-    database.ref('fichas/' + fichaAtualId).off('value', escutandoFichaRef);
-    escutandoFichaRef = null;
-  }
-  fichaAtualId = null;
-  fichaAtualData = null;
-  localStorage.removeItem("rpg_ficha_id");
-  localStorage.removeItem("rpg_modo_mestre");
-  document.getElementById("badge-gm-view").style.display = "none";
-  trocarTela("screen-select");
+  if (escutandoFirebaseRef) escutandoFirebaseRef.off();
+  idFichaAtual = null;
+  éMestre = false;
+  mostrarTela('screen-select');
 }
 
-/* ==========================================================================
-   AUTENTICAÇÃO & CONEXÃO (JOGADOR E MESTRE)
-   ========================================================================== */
+// --- ACESSO DO JOGADOR ---
 function entrarComoJogador() {
-  const inputId = document.getElementById("input-player-id");
-  const id = inputId.value.trim();
+  const inputID = document.getElementById('input-player-id').value.trim().toLowerCase();
+  if (!inputID) return alert("Por favor, digite o nome/ID do seu personagem!");
 
-  if (!id) {
-    alert("Digite o nome ou ID do personagem!");
-    return;
-  }
+  idFichaAtual = inputID;
+  éMestre = false;
+  document.getElementById('badge-gm-view').style.display = 'none';
+  document.getElementById('label-ficha-ativa').innerText = `Ficha: ${idFichaAtual}`;
 
-  fichaAtualId = id;
-  localStorage.setItem("rpg_ficha_id", id);
-  localStorage.removeItem("rpg_modo_mestre");
-
-  document.getElementById("label-ficha-ativa").innerText = `Editando Ficha: ${id}`;
-  document.getElementById("badge-gm-view").style.display = "none";
-
-  conectarFicha(id);
-  trocarTela("screen-sheet");
+  carregarFichaEConectar();
+  mostrarTela('screen-sheet');
 }
 
-function entrarComoMestre(autoLogin = false) {
-  if (!autoLogin) {
-    const pass = document.getElementById("input-gm-pass").value;
-    if (pass !== SENHA_MESTRE) {
-      alert("Senha de Mestre incorreta!");
+// --- ACESSO DO MESTRE ---
+function entrarComoMestre() {
+  const senhaInput = document.getElementById('input-gm-pass').value;
+  if (senhaInput !== SENHA_MESTRE) return alert("Senha do Mestre incorreta!");
+
+  éMestre = true;
+  carregarPainelMestre();
+  mostrarTela('screen-gm-dashboard');
+}
+
+function carregarPainelMestre() {
+  const container = document.getElementById('gm-cards-list');
+  container.innerHTML = "<p>Carregando fichas...</p>";
+
+  database.ref('fichas').on('value', (snapshot) => {
+    container.innerHTML = '';
+    const fichas = snapshot.val();
+
+    if (!fichas) {
+      container.innerHTML = "<p>Nenhuma ficha cadastrada ainda no sistema.</p>";
       return;
     }
-  }
 
-  localStorage.setItem("rpg_modo_mestre", "true");
-  localStorage.removeItem("rpg_ficha_id");
-
-  carregarDashboardMestre();
-  trocarTela("screen-gm-dashboard");
+    Object.keys(fichas).forEach(id => {
+      const f = fichas[id];
+      container.innerHTML += `
+        <div class="gm-card">
+          <div class="gm-card-header">
+            <h3>${f.nome || id}</h3>
+            <small>ID: ${id}</small>
+          </div>
+          <div class="gm-card-stats">
+            <span>Nível: <strong>${f.nivel || 1}</strong></span>
+            <span>Classe: <strong>${f.classeBase || '-'}</strong></span>
+            <span>PV: <strong>${f.pvAtual || 0} / ${f.pvMax || 0}</strong></span>
+            <span>PE: <strong>${f.peAtual || 0} / ${f.peMax || 0}</strong></span>
+            <span>SAN: <strong>${f.sanAtual || 0} / ${f.sanMax || 0}</strong></span>
+            <span>MA: <strong>${f.maAtual || 0} / ${f.maMax || 0}</strong></span>
+          </div>
+          <button class="btn-primary" onclick="mestreAbrirFicha('${id}')">👁️ Abrir / Editar Ficha</button>
+        </div>
+      `;
+    });
+  });
 }
 
-function abrirFichaComoMestre(idFicha) {
-  fichaAtualId = idFicha;
-  document.getElementById("label-ficha-ativa").innerText = `Inspecionando: ${idFicha}`;
-  document.getElementById("badge-gm-view").style.display = "inline-block";
+function mestreAbrirFicha(idFicha) {
+  idFichaAtual = idFicha;
+  document.getElementById('badge-gm-view').style.display = 'inline-block';
+  document.getElementById('label-ficha-ativa').innerText = `Editando Ficha: ${idFichaAtual}`;
 
-  conectarFicha(idFicha);
-  trocarTela("screen-sheet");
+  carregarFichaEConectar();
+  mostrarTela('screen-sheet');
 }
 
-/* ==========================================================================
-   BANCO DE DADOS EM TEMPO REAL (FIREBASE)
-   ========================================================================== */
-function conectarFicha(id) {
-  const ref = database.ref('fichas/' + id);
+// --- SINCRONIZAÇÃO EM TEMPO REAL COM FIREBASE ---
+function carregarFichaEConectar() {
+  if (escutandoFirebaseRef) escutandoFirebaseRef.off();
 
-  if (escutandoFichaRef) ref.off('value', escutandoFichaRef);
-
-  escutandoFichaRef = ref.on('value', (snapshot) => {
+  escutandoFirebaseRef = database.ref('fichas/' + idFichaAtual);
+  escutandoFirebaseRef.on('value', (snapshot) => {
     const data = snapshot.val();
     if (data) {
-      fichaAtualData = data;
-      carregarDadosFichaNaTela(data);
+      aplicarDadosFicha(data);
     } else {
-      // Cria uma ficha inicial por padrão
-      const fichaInicial = getEstruturaFichaPadrao(id);
-      ref.set(fichaInicial);
+      recalcularTudo(false);
     }
   });
 }
 
-function getEstruturaFichaPadrao(nome) {
-  return {
-    nome: nome,
-    classeBase: "Combatente",
-    nivel: 1,
-    nex: "20%",
-    idade: 18,
-    origem: "Nenhuma",
-    raca: "Humano",
-    genero: "Outro",
-    sexualidade: "Outro",
-    classeAdd: "",
-    traco: "",
-    traumas: "",
-    expAtual: 0,
-    pvAtual: 20,
-    sanAtual: 15,
-    peAtual: 10,
-    maAtual: 0,
-    tpVal: 0,
-    defesasEspecificas: {},
-    atributos: { forca: 10, agilidade: 10, vigor: 10, inteligencia: 10, presenca: 10, carisma: 10, sorte: 10 },
-    pericias: {},
-    raridades: {},
-    skillsTexto: "",
-    feiticosTexto: "",
-    rituaisTexto: "",
-    slotsMagia: [0, 0, 0, 0, 0, 0, 0, 0, 0],
-    inventario: [],
-    equipados: [],
-    efeitosAtivos: [],
-    anotacoes: []
-  };
+function atualizarCampoSeInativo(idElemento, valorNovo) {
+  const el = document.getElementById(idElemento);
+  if (el && document.activeElement !== el) {
+    if (el.type === 'checkbox') {
+      el.checked = !!valorNovo;
+    } else {
+      el.value = valorNovo !== undefined ? valorNovo : '';
+    }
+  }
+}
+
+function aplicarDadosFicha(data) {
+  atualizarCampoSeInativo('nome', data.nome || idFichaAtual);
+  atualizarCampoSeInativo('nivel', data.nivel || 1);
+  expAtual = data.expAtual || 0;
+  atualizarCampoSeInativo('nex', data.nex || '20%');
+  atualizarCampoSeInativo('idade', data.idade || '');
+  atualizarCampoSeInativo('traco', data.traco || '');
+  atualizarCampoSeInativo('classe-base', data.classeBase || 'Místico');
+  atualizarCampoSeInativo('classe-add', data.classeAdd || '');
+  atualizarCampoSeInativo('origem', data.origem || '');
+  atualizarCampoSeInativo('raca', data.raca || '');
+  atualizarCampoSeInativo('sexualidade', data.sexualidade || '');
+  atualizarCampoSeInativo('genero', data.genero || '');
+  atualizarCampoSeInativo('traumas', data.traumas || '');
+
+  atualizarCampoSeInativo('pv-atual', data.pvAtual || 0);
+  atualizarCampoSeInativo('san-atual', data.sanAtual || 0);
+  atualizarCampoSeInativo('pe-atual', data.peAtual || 0);
+  atualizarCampoSeInativo('ma-atual', data.maAtual || 0);
+  atualizarCampoSeInativo('tp-val', data.tpVal || 0);
+
+  atualizarCampoSeInativo('attr-forca', data.attrForca || 10);
+  atualizarCampoSeInativo('attr-agilidade', data.attrAgilidade || 10);
+  atualizarCampoSeInativo('attr-vigor', data.attrVigor || 10);
+  atualizarCampoSeInativo('attr-inteligencia', data.attrInteligencia || 10);
+  atualizarCampoSeInativo('attr-presenca', data.attrPresenca || 10);
+  atualizarCampoSeInativo('attr-carisma', data.attrCarisma || 10);
+  atualizarCampoSeInativo('attr-sorte', data.attrSorte || 10);
+
+  defesasEspecificas = data.defesasEspecificas || { perfuracao:0, queimadura:0, corte:0, impacto:0, balistico:0, eletricidade:0, fogo:0, frio:0, acido:0, veneno:0, magico:0 };
+  Object.keys(defesasEspecificas).forEach(k => {
+    atualizarCampoSeInativo(`def-${k}`, defesasEspecificas[k]);
+  });
+
+  atualizarCampoSeInativo('hab-unicas', data.habUnicas || '');
+  atualizarCampoSeInativo('hab-lendarias', data.habLendarias || '');
+  atualizarCampoSeInativo('hab-epicas', data.habEpicas || '');
+  atualizarCampoSeInativo('hab-raras', data.habRaras || '');
+  atualizarCampoSeInativo('hab-incomuns', data.habIncomuns || '');
+  atualizarCampoSeInativo('hab-comuns', data.habComuns || '');
+
+  atualizarCampoSeInativo('skills-texto', data.skillsTexto || '');
+  atualizarCampoSeInativo('feiticos-texto', data.feiticosTexto || '');
+  atualizarCampoSeInativo('rituais-texto', data.rituaisTexto || '');
+
+  if (data.slotsMagia) {
+    slotsAtuais = data.slotsMagia.atuais || [0, 0, 0, 0, 0, 0, 0, 0, 0];
+    atualizarCampoSeInativo('classe-magica-1', data.slotsMagia.magica1);
+    atualizarCampoSeInativo('nv-classe-magica-1', data.slotsMagia.nvMagica1 || 0);
+    atualizarCampoSeInativo('classe-magica-2', data.slotsMagia.magica2);
+    atualizarCampoSeInativo('nv-classe-magica-2', data.slotsMagia.nvMagica2 || 0);
+  }
+
+  dadosPericias = data.dadosPericias || {};
+  inventario = data.inventario || [];
+  equipamentos = data.equipamentos || [];
+  efeitos = data.efeitos || [];
+  blocosAnotacoes = data.blocosAnotacoes || [];
+
+  renderItens();
+  renderEfeitos();
+  renderBlocosAnotacoes();
+  renderizarSlots();
+  recalcularTudo(false);
 }
 
 function salvarDados() {
-  if (!fichaAtualId) return;
+  if (!idFichaAtual) return;
 
-  const dataAtualizada = {
-    ...fichaAtualData,
-    classeBase: document.getElementById("classe-base").value,
-    nivel: parseInt(document.getElementById("nivel").value) || 1,
-    nex: document.getElementById("nex").value,
-    idade: parseInt(document.getElementById("idade").value) || 0,
-    nome: document.getElementById("nome").value,
-    origem: document.getElementById("origem").value,
-    raca: document.getElementById("raca").value,
-    genero: document.getElementById("genero").value,
-    sexualidade: document.getElementById("sexualidade").value,
-    classeAdd: document.getElementById("classe-add").value,
-    traco: document.getElementById("traco").value,
-    traumas: document.getElementById("traumas").value,
-    pvAtual: parseInt(document.getElementById("pv-atual").value) || 0,
-    sanAtual: parseInt(document.getElementById("san-atual").value) || 0,
-    peAtual: parseInt(document.getElementById("pe-atual").value) || 0,
-    maAtual: parseInt(document.getElementById("ma-atual").value) || 0,
-    tpVal: parseInt(document.getElementById("tp-val").value) || 0,
-    
-    defesasEspecificas: {
-      perfuracao: parseInt(document.getElementById("def-perfuracao").value) || 0,
-      queimadura: parseInt(document.getElementById("def-queimadura").value) || 0,
-      corte: parseInt(document.getElementById("def-corte").value) || 0,
-      impacto: parseInt(document.getElementById("def-impacto").value) || 0,
-      balistico: parseInt(document.getElementById("def-balistico").value) || 0,
-      eletricidade: parseInt(document.getElementById("def-eletricidade").value) || 0,
-      fogo: parseInt(document.getElementById("def-fogo").value) || 0,
-      frio: parseInt(document.getElementById("def-frio").value) || 0,
-      acido: parseInt(document.getElementById("def-acido").value) || 0,
-      veneno: parseInt(document.getElementById("def-veneno").value) || 0,
-      magico: parseInt(document.getElementById("def-magico").value) || 0,
-    },
-    atributos: {
-      forca: parseInt(document.getElementById("attr-forca").value) || 0,
-      agilidade: parseInt(document.getElementById("attr-agilidade").value) || 0,
-      vigor: parseInt(document.getElementById("attr-vigor").value) || 0,
-      inteligencia: parseInt(document.getElementById("attr-inteligencia").value) || 0,
-      presenca: parseInt(document.getElementById("attr-presenca").value) || 0,
-      carisma: parseInt(document.getElementById("attr-carisma").value) || 0,
-      sorte: parseInt(document.getElementById("attr-sorte").value) || 0,
-    },
-    raridades: {
-      unicas: document.getElementById("hab-unicas").value,
-      lendarias: document.getElementById("hab-lendarias").value,
-      epicas: document.getElementById("hab-epicas").value,
-      raras: document.getElementById("hab-raras").value,
-      incomuns: document.getElementById("hab-incomuns").value,
-      comuns: document.getElementById("hab-comuns").value,
-    },
-    skillsTexto: document.getElementById("skills-texto").value,
-    feiticosTexto: document.getElementById("feiticos-texto").value,
-    rituaisTexto: document.getElementById("rituais-texto").value
+  const defEspecificasSalvar = {
+    perfuracao: parseInt(document.getElementById('def-perfuracao')?.value) || 0,
+    queimadura: parseInt(document.getElementById('def-queimadura')?.value) || 0,
+    corte: parseInt(document.getElementById('def-corte')?.value) || 0,
+    impacto: parseInt(document.getElementById('def-impacto')?.value) || 0,
+    balistico: parseInt(document.getElementById('def-balistico')?.value) || 0,
+    eletricidade: parseInt(document.getElementById('def-eletricidade')?.value) || 0,
+    fogo: parseInt(document.getElementById('def-fogo')?.value) || 0,
+    frio: parseInt(document.getElementById('def-frio')?.value) || 0,
+    acido: parseInt(document.getElementById('def-acido')?.value) || 0,
+    veneno: parseInt(document.getElementById('def-veneno')?.value) || 0,
+    magico: parseInt(document.getElementById('def-magico')?.value) || 0
   };
 
-  // Coleta valores das perícias
-  LISTA_PERICIAS.forEach(p => {
-    const input = document.getElementById(`pericia-val-${p.nome}`);
-    if (input) {
-      if (!dataAtualizada.pericias) dataAtualizada.pericias = {};
-      dataAtualizada.pericias[p.nome] = parseInt(input.value) || 0;
-    }
-  });
+  const estadoFicha = {
+    nome: document.getElementById('nome').value,
+    nivel: document.getElementById('nivel').value,
+    expAtual,
+    nex: document.getElementById('nex').value,
+    idade: document.getElementById('idade').value,
+    traco: document.getElementById('traco').value,
+    classeBase: document.getElementById('classe-base').value,
+    classeAdd: document.getElementById('classe-add').value,
+    origem: document.getElementById('origem').value,
+    raca: document.getElementById('raca').value,
+    sexualidade: document.getElementById('sexualidade').value,
+    genero: document.getElementById('genero').value,
+    traumas: document.getElementById('traumas').value,
 
-  database.ref('fichas/' + fichaAtualId).set(dataAtualizada);
+    pvAtual: document.getElementById('pv-atual').value,
+    pvMax: document.getElementById('pv-max').value,
+    sanAtual: document.getElementById('san-atual').value,
+    sanMax: document.getElementById('san-max').value,
+    peAtual: document.getElementById('pe-atual').value,
+    peMax: document.getElementById('pe-max').value,
+    maAtual: document.getElementById('ma-atual').value,
+    maMax: document.getElementById('ma-max').value,
+    tpVal: document.getElementById('tp-val').value,
+
+    attrForca: document.getElementById('attr-forca').value,
+    attrAgilidade: document.getElementById('attr-agilidade').value,
+    attrVigor: document.getElementById('attr-vigor').value,
+    attrInteligencia: document.getElementById('attr-inteligencia').value,
+    attrPresenca: document.getElementById('attr-presenca').value,
+    attrCarisma: document.getElementById('attr-carisma').value,
+    attrSorte: document.getElementById('attr-sorte').value,
+
+    defesasEspecificas: defEspecificasSalvar,
+
+    habUnicas: document.getElementById('hab-unicas').value,
+    habLendarias: document.getElementById('hab-lendarias').value,
+    habEpicas: document.getElementById('hab-epicas').value,
+    habRaras: document.getElementById('hab-raras').value,
+    habIncomuns: document.getElementById('hab-incomuns').value,
+    habComuns: document.getElementById('hab-comuns').value,
+
+    skillsTexto: document.getElementById('skills-texto').value,
+    feiticosTexto: document.getElementById('feiticos-texto').value,
+    rituaisTexto: document.getElementById('rituais-texto').value,
+
+    slotsMagia: {
+      atuais: slotsAtuais,
+      magica1: document.getElementById('classe-magica-1')?.checked || false,
+      nvMagica1: document.getElementById('nv-classe-magica-1')?.value || 0,
+      magica2: document.getElementById('classe-magica-2')?.checked || false,
+      nvMagica2: document.getElementById('nv-classe-magica-2')?.value || 0
+    },
+
+    dadosPericias, inventario, equipamentos, efeitos, blocosAnotacoes
+  };
+
+  database.ref('fichas/' + idFichaAtual).update(estadoFicha);
 }
 
-function carregarDadosFichaNaTela(d) {
-  setInputValue("classe-base", d.classeBase || "Combatente");
-  setInputValue("nivel", d.nivel || 1);
-  setInputValue("nex", d.nex || "20%");
-  setInputValue("idade", d.idade || 18);
-  setInputValue("nome", d.nome || "");
-  setInputValue("origem", d.origem || "");
-  setInputValue("raca", d.raca || "");
-  setInputValue("genero", d.genero || "");
-  setInputValue("sexualidade", d.sexualidade || "");
-  setInputValue("classe-add", d.classeAdd || "");
-  setInputValue("traco", d.traco || "");
-  setInputValue("traumas", d.traumas || "");
-
-  setInputValue("pv-atual", d.pvAtual || 0);
-  setInputValue("san-atual", d.sanAtual || 0);
-  setInputValue("pe-atual", d.peAtual || 0);
-  setInputValue("ma-atual", d.maAtual || 0);
-  setInputValue("tp-val", d.tpVal || 0);
-
-  if (d.defesasEspecificas) {
-    setInputValue("def-perfuracao", d.defesasEspecificas.perfuracao || 0);
-    setInputValue("def-queimadura", d.defesasEspecificas.queimadura || 0);
-    setInputValue("def-corte", d.defesasEspecificas.corte || 0);
-    setInputValue("def-impacto", d.defesasEspecificas.impacto || 0);
-    setInputValue("def-balistico", d.defesasEspecificas.balistico || 0);
-    setInputValue("def-eletricidade", d.defesasEspecificas.eletricidade || 0);
-    setInputValue("def-fogo", d.defesasEspecificas.fogo || 0);
-    setInputValue("def-frio", d.defesasEspecificas.frio || 0);
-    setInputValue("def-acido", d.defesasEspecificas.acido || 0);
-    setInputValue("def-veneno", d.defesasEspecificas.veneno || 0);
-    setInputValue("def-magico", d.defesasEspecificas.magico || 0);
-  }
-
-  if (d.atributos) {
-    setInputValue("attr-forca", d.atributos.forca || 10);
-    setInputValue("attr-agilidade", d.atributos.agilidade || 10);
-    setInputValue("attr-vigor", d.atributos.vigor || 10);
-    setInputValue("attr-inteligencia", d.atributos.inteligencia || 10);
-    setInputValue("attr-presenca", d.atributos.presenca || 10);
-    setInputValue("attr-carisma", d.atributos.carisma || 10);
-    setInputValue("attr-sorte", d.atributos.sorte || 10);
-  }
-
-  if (d.pericias) {
-    LISTA_PERICIAS.forEach(p => {
-      setInputValue(`pericia-val-${p.nome}`, d.pericias[p.nome] || 0);
-    });
-  }
-
-  if (d.raridades) {
-    setInputValue("hab-unicas", d.raridades.unicas || "");
-    setInputValue("hab-lendarias", d.raridades.lendarias || "");
-    setInputValue("hab-epicas", d.raridades.epicas || "");
-    setInputValue("hab-raras", d.raridades.raras || "");
-    setInputValue("hab-incomuns", d.raridades.incomuns || "");
-    setInputValue("hab-comuns", d.raridades.comuns || "");
-  }
-
-  setInputValue("skills-texto", d.skillsTexto || "");
-  setInputValue("feiticos-texto", d.feiticosTexto || "");
-  setInputValue("rituais-texto", d.rituaisTexto || "");
-
-  // Atualizações dinâmicas na interface
-  renderExpDisplay(d.expAtual || 0, d.nivel || 1);
-  recalcularTudo(false);
-  renderInventarioEEquipamentos(d.inventario || [], d.equipados || []);
-  renderEfeitosFicha(d.efeitosAtivos || []);
-  renderAnotacoesFicha(d.anotacoes || []);
-  renderSlotsMagia(d.slotsMagia || [0,0,0,0,0,0,0,0,0]);
-}
-
-function setInputValue(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.value = val;
-}
-
-/* ==========================================================================
-   CÁLCULOS E REGRA DE NEGÓCIO DA FICHA
-   ========================================================================== */
-function recalcularTudo(salvar = true) {
-  const niv = parseInt(document.getElementById("nivel").value) || 1;
-  const vigor = parseInt(document.getElementById("attr-vigor").value) || 10;
-  const presenca = parseInt(document.getElementById("attr-presenca").value) || 10;
-  const agilidade = parseInt(document.getElementById("attr-agilidade").value) || 10;
-  const classe = document.getElementById("classe-base").value;
-
-  let basePV = 10, pvPorNivel = 2;
-  let basePE = 5, pePorNivel = 1;
-  let baseSAN = 10, sanPorNivel = 2;
-  let baseMA = 0, maPorNivel = 0;
-
-  if (classe === "Combatente") {
-    basePV = 20; pvPorNivel = 4;
-    basePE = 6; pePorNivel = 2;
-    baseSAN = 12; sanPorNivel = 2;
-  } else if (classe === "Especialista") {
-    basePV = 16; pvPorNivel = 3;
-    basePE = 10; pePorNivel = 3;
-    baseSAN = 16; sanPorNivel = 3;
-  } else if (classe === "Místico") {
-    basePV = 12; pvPorNivel = 2;
-    basePE = 12; pePorNivel = 4;
-    baseSAN = 20; sanPorNivel = 4;
-    baseMA = 10; maPorNivel = 5;
-  }
-
-  // Cálculos de Máximos
-  const maxPV = basePV + (vigor - 10) + ((niv - 1) * pvPorNivel);
-  const maxSAN = baseSAN + ((niv - 1) * sanPorNivel);
-  const maxPE = basePE + (presenca - 10) + ((niv - 1) * pePorNivel);
-  const maxMA = baseMA + ((niv - 1) * maPorNivel);
-
-  document.getElementById("pv-max").value = Math.max(1, maxPV);
-  document.getElementById("san-max").value = Math.max(1, maxSAN);
-  document.getElementById("pe-max").value = Math.max(1, maxPE);
-  document.getElementById("ma-max").value = Math.max(0, maxMA);
-
-  // Defesa e Evasão
-  const defesaBase = 10 + Math.floor((agilidade - 10) / 2);
-  document.getElementById("def-val").value = defesaBase;
-  document.getElementById("eva-val").value = defesaBase + 5;
-
-  // Deslocamento
-  document.getElementById("deslocamento-val").value = `${9 + Math.floor((agilidade - 10) / 2)}m`;
-
-  atualizarCargaEBonus();
-
-  if (salvar) salvarDados();
-}
-
-function formatarNEX(el) {
-  let val = el.value.replace(/[^0-9]/g, '');
-  if (!val) val = "0";
-  el.value = val + "%";
-  salvarDados();
-}
-
-/* ==========================================================================
-   PERÍCIAS & NAVEGAÇÃO ENTRE ABAS
-   ========================================================================== */
-function gerarGridPericias() {
-  const grid = document.getElementById("grid-pericias");
-  if (!grid) return;
-  grid.innerHTML = "";
-
-  LISTA_PERICIAS.forEach(p => {
-    const card = document.createElement("div");
-    card.className = "card-pericia";
-    card.innerHTML = `
-      <label>${p.nome} <small>(${p.attr.substring(0,3).toUpperCase()})</small></label>
-      <div class="card-pericia-inputs">
-        <input type="number" id="pericia-val-${p.nome}" value="0" onchange="salvarDados()">
-        <span class="bonus-tag" id="pericia-tag-${p.nome}">+0</span>
-      </div>
-    `;
-    grid.appendChild(card);
-  });
-}
-
-function openTab(tabId, event) {
-  const container = event.target.closest(".screen-container");
-  container.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-  container.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
-
-  event.target.classList.add("active");
-  document.getElementById(`tab-${tabId}`).classList.add("active");
-}
-
-function openSubTab(subTabId, event) {
-  const parent = event.target.closest(".tab-content");
-  parent.querySelectorAll(".sub-tab-btn").forEach(b => b.classList.remove("active"));
-  parent.querySelectorAll(".sub-tab-content").forEach(c => c.classList.remove("active"));
-
-  event.target.classList.add("active");
-  document.getElementById(`subtab-${subTabId}`).classList.add("active");
-}
-
+// --- CONTROLE DE DEFESA ESPECÍFICA POPUP ---
 function toggleDefesaTooltip(e) {
   e.stopPropagation();
-  const box = document.getElementById("defensa-tooltip-box");
-  box.classList.toggle("active");
+  const box = document.getElementById('defensa-tooltip-box');
+  if (box) box.classList.toggle('active');
 }
 
-/* ==========================================================================
-   SISTEMA DE XP & MODAL
-   ========================================================================== */
-function renderExpDisplay(exp, niv) {
-  const expNec = niv * 100;
-  document.getElementById("exp-display").value = `${exp} / ${expNec}`;
+document.addEventListener('click', (e) => {
+  const box = document.getElementById('defensa-tooltip-box');
+  if (box && !box.contains(e.target) && !e.target.classList.contains('btn-def-asterisk')) {
+    box.classList.remove('active');
+  }
+});
+
+// --- CONTROLE DE ABAS ---
+function openTab(tabName, evt) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById(`tab-${tabName}`).classList.add('active');
+  if (evt) evt.currentTarget.classList.add('active');
 }
 
+function openSubTab(subTabName, evt) {
+  document.querySelectorAll('.sub-tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.sub-tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById(`subtab-${subTabName}`).classList.add('active');
+  if (evt) evt.currentTarget.classList.add('active');
+}
+
+function formatarNEX(input) {
+  let val = input.value.replace(/[^0-9]/g, '');
+  if (val !== '') {
+    if (parseInt(val) > 100) val = '100';
+    input.value = `${val}%`;
+  } else { input.value = '0%'; }
+  recalcularTudo();
+}
+
+// --- MODAL DE XP ---
 function abrirModalXP() {
-  document.getElementById("modal-xp").classList.add("active");
+  document.getElementById('modal-xp').classList.add('active');
+  document.getElementById('xp-input-val').value = '0';
 }
 
 function fecharModalXP() {
-  document.getElementById("modal-xp").classList.remove("active");
+  document.getElementById('modal-xp').classList.remove('active');
 }
 
 function somarXPInput(val) {
-  const inp = document.getElementById("xp-input-val");
-  inp.value = (parseInt(inp.value) || 0) + val;
+  let campo = document.getElementById('xp-input-val');
+  let atual = parseInt(campo.value) || 0;
+  campo.value = atual + val;
 }
 
 function confirmarGanhoXP() {
-  const val = parseInt(document.getElementById("xp-input-val").value) || 0;
-  if (!fichaAtualData) return;
+  let ganho = parseInt(document.getElementById('xp-input-val').value) || 0;
+  if (ganho <= 0) return fecharModalXP();
 
-  let novoExp = (fichaAtualData.expAtual || 0) + val;
-  let nivelAtual = fichaAtualData.nivel || 1;
+  let nivelAtual = parseInt(document.getElementById('nivel').value) || 1;
+  expAtual += ganho;
   let expNecessario = nivelAtual * 100;
 
-  while (novoExp >= expNecessario) {
-    novoExp -= expNecessario;
+  while (expAtual >= expNecessario) {
+    expAtual -= expNecessario;
     nivelAtual++;
     expNecessario = nivelAtual * 100;
   }
 
-  fichaAtualData.expAtual = novoExp;
-  fichaAtualData.nivel = nivelAtual;
-  document.getElementById("nivel").value = nivelAtual;
-
-  salvarDados();
+  document.getElementById('nivel').value = nivelAtual;
   fecharModalXP();
-  document.getElementById("xp-input-val").value = "";
+  recalcularTudo();
 }
 
-/* ==========================================================================
-   SISTEMA DE SLOTS DE MAGIA
-   ========================================================================== */
-function recalcularSlotsMagia() {
-  renderSlotsMagia(fichaAtualData ? fichaAtualData.slotsMagia : [0,0,0,0,0,0,0,0,0]);
-}
+// --- BUFFS DE ITENS & EFEITOS ---
+function popularOpcoesBuff() {
+  const selects = [document.getElementById('buff-alvo'), document.getElementById('gm-effect-buff-alvo')];
+  const htmlOptions = `
+    <optgroup label="Atributos">
+      <option value="attr-forca">Força</option>
+      <option value="attr-agilidade">Agilidade</option>
+      <option value="attr-vigor">Vigor</option>
+      <option value="attr-inteligencia">Inteligência</option>
+      <option value="attr-presenca">Presença</option>
+      <option value="attr-carisma">Carisma</option>
+      <option value="attr-sorte">Sorte</option>
+    </optgroup>
+    <optgroup label="Status & Estatísticas">
+      <option value="status-pv">Vida (PV)</option>
+      <option value="status-san">Sanidade (SAN)</option>
+      <option value="status-pe">Esforço (PE)</option>
+      <option value="status-ma">Mana (MA)</option>
+      <option value="status-def">Defesa (DEF)</option>
+      <option value="status-eva">Evasão (EVA)</option>
+      <option value="status-deslocamento">Deslocamento (m)</option>
+    </optgroup>
+    <optgroup label="Defesas Específicas">
+      <option value="def-perfuracao">Perfuração</option>
+      <option value="def-queimadura">Queimadura</option>
+      <option value="def-corte">Corte</option>
+      <option value="def-impacto">Impacto</option>
+      <option value="def-balistico">Balístico</option>
+      <option value="def-eletricidade">Eletricidade</option>
+      <option value="def-fogo">Fogo</option>
+      <option value="def-frio">Frio</option>
+      <option value="def-acido">Ácido</option>
+      <option value="def-veneno">Veneno</option>
+      <option value="def-magico">Mágico</option>
+    </optgroup>
+    <optgroup label="Perícias">
+      ${periciasLista.map(p => `<option value="pericia-${p}">${p}</option>`).join('')}
+    </optgroup>
+  `;
 
-function renderSlotsMagia(slotsArr) {
-  const grid = document.getElementById("circulos-grid");
-  if (!grid) return;
-  grid.innerHTML = "";
-
-  for (let i = 0; i < 9; i++) {
-    const qtd = slotsArr[i] || 0;
-    const card = document.createElement("div");
-    card.className = "circulo-card";
-    card.innerHTML = `
-      <div class="circulo-info">${i + 1}º Círculo: <strong>${qtd} Slots</strong></div>
-      <div class="circulo-controles">
-        <button type="button" class="btn-slot" onclick="alterarSlotMagia(${i}, -1)">-</button>
-        <button type="button" class="btn-slot" onclick="alterarSlotMagia(${i}, 1)">+</button>
-      </div>
-    `;
-    grid.appendChild(card);
-  }
-}
-
-function alterarSlotMagia(index, delta) {
-  let slots = fichaAtualData && fichaAtualData.slotsMagia ? [...fichaAtualData.slotsMagia] : [0,0,0,0,0,0,0,0,0];
-  slots[index] = Math.max(0, (slots[index] || 0) + delta);
-  fichaAtualData.slotsMagia = slots;
-  database.ref(`fichas/${fichaAtualId}/slotsMagia`).set(slots);
-}
-
-function restaurarSlotsDescanso() {
-  const slots = [4, 3, 3, 2, 1, 0, 0, 0, 0]; // Exemplo de recuperação total
-  database.ref(`fichas/${fichaAtualId}/slotsMagia`).set(slots);
-}
-
-function zerarTodosSlots() {
-  const slots = [0, 0, 0, 0, 0, 0, 0, 0, 0];
-  database.ref(`fichas/${fichaAtualId}/slotsMagia`).set(slots);
-}
-
-/* ==========================================================================
-   INVENTÁRIO & BUFFS
-   ========================================================================== */
-function preencherSelectsDeBuffs() {
-  const selectItem = document.getElementById("buff-alvo");
-  const selectGm = document.getElementById("gm-effect-buff-alvo");
-  if (!selectItem || !selectGm) return;
-
-  const opcoes = ["Força", "Agilidade", "Vigor", "Inteligência", "Presença", "Carisma", "Sorte", ...LISTA_PERICIAS.map(p => p.nome)];
-  
-  const htmlStr = opcoes.map(o => `<option value="${o}">${o}</option>`).join('');
-  selectItem.innerHTML = htmlStr;
-  selectGm.innerHTML = htmlStr;
+  selects.forEach(s => { if (s) s.innerHTML = htmlOptions; });
 }
 
 function adicionarBuffItemTemp() {
-  const alvo = document.getElementById("buff-alvo").value;
-  const val = parseInt(document.getElementById("buff-valor").value) || 0;
-
-  buffsItemTemp.push({ alvo, valor: val });
-  renderBuffsTagsTemp("lista-buffs-temp", buffsItemTemp);
+  const select = document.getElementById('buff-alvo');
+  const alvoId = select.value;
+  const alvoNome = select.options[select.selectedIndex].text;
+  const val = parseInt(document.getElementById('buff-valor').value) || 0;
+  if (val === 0) return;
+  buffsTempItem.push({ alvoId, alvoNome, val });
+  renderBuffsTemp();
 }
 
-function renderBuffsTagsTemp(containerId, arrayBuffs) {
-  const container = document.getElementById(containerId);
-  container.innerHTML = "";
-  arrayBuffs.forEach((b, idx) => {
-    const tag = document.createElement("div");
-    tag.className = "buff-tag";
-    tag.innerHTML = `${b.alvo}: ${b.valor > 0 ? '+' : ''}${b.valor} <span onclick="removerBuffTemp('${containerId}', ${idx})">&times;</span>`;
-    container.appendChild(tag);
-  });
+function renderBuffsTemp() {
+  const container = document.getElementById('lista-buffs-temp');
+  if (!container) return;
+  container.innerHTML = buffsTempItem.map((b, idx) => `
+    <span class="buff-tag">${b.alvoNome}: ${b.val > 0 ? '+' : ''}${b.val} <span onclick="removerBuffTemp(${idx})">×</span></span>
+  `).join('');
 }
 
-function removerBuffTemp(containerId, idx) {
-  if (containerId === "lista-buffs-temp") {
-    buffsItemTemp.splice(idx, 1);
-    renderBuffsTagsTemp(containerId, buffsItemTemp);
-  } else {
-    buffsGmEffectTemp.splice(idx, 1);
-    renderBuffsTagsTemp(containerId, buffsGmEffectTemp);
-  }
+function removerBuffTemp(idx) {
+  buffsTempItem.splice(idx, 1);
+  renderBuffsTemp();
 }
 
-function criarItem() {
-  const nome = document.getElementById("item-nome").value.trim();
-  const qtd = parseInt(document.getElementById("item-qtd").value) || 1;
-  const carga = parseFloat(document.getElementById("item-carga").value) || 0;
-  const isMochila = document.getElementById("item-is-mochila").checked;
-  const bonusCarga = parseFloat(document.getElementById("item-bonus-carga").value) || 0;
-  const desc = document.getElementById("item-desc").value;
-  const imgInput = document.getElementById("item-img-input");
-
-  if (!nome) {
-    alert("Insira o nome do item!");
-    return;
-  }
-
-  const salvarItemObjeto = (imgBase64 = null) => {
-    const novoItem = {
-      id: Date.now().toString(),
-      nome, qtd, carga, isMochila, bonusCarga, desc,
-      buffs: [...buffsItemTemp],
-      img: imgBase64
-    };
-
-    let inventario = fichaAtualData && fichaAtualData.inventario ? [...fichaAtualData.inventario] : [];
-    inventario.push(novoItem);
-
-    database.ref(`fichas/${fichaAtualId}/inventario`).set(inventario);
-
-    // Reset formulário
-    document.getElementById("item-nome").value = "";
-    document.getElementById("item-desc").value = "";
-    buffsItemTemp = [];
-    renderBuffsTagsTemp("lista-buffs-temp", buffsItemTemp);
-  };
-
-  if (imgInput.files && imgInput.files[0]) {
-    const reader = new FileReader();
-    reader.onload = (e) => salvarItemObjeto(e.target.result);
-    reader.readAsDataURL(imgInput.files[0]);
-  } else {
-    salvarItemObjeto();
-  }
-}
-
-function renderInventarioEEquipamentos(inventario, equipados) {
-  const listInv = document.getElementById("lista-inventario");
-  const listEqp = document.getElementById("lista-equipamentos");
-  if (!listInv || !listEqp) return;
-
-  listInv.innerHTML = "";
-  listEqp.innerHTML = "";
-
-  inventario.forEach((item, index) => {
-    listInv.appendChild(gerarCardItemHTML(item, index, false));
-  });
-
-  equipados.forEach((item, index) => {
-    listEqp.appendChild(gerarCardItemHTML(item, index, true));
-  });
-
-  atualizarCargaEBonus();
-}
-
-function gerarCardItemHTML(item, index, isEquipado) {
-  const card = document.createElement("div");
-  card.className = "item-card";
-  card.innerHTML = `
-    <div class="item-card-header">
-      <span>${item.nome} (${item.carga} Kg)</span>
-      <div class="item-inputs">
-        <label>Qtd: ${item.qtd}</label>
-        ${isEquipado ? 
-          `<button type="button" class="btn-sub" onclick="desequiparItem(${index})">Desequipar</button>` :
-          `<button type="button" class="btn-success" onclick="equiparItem(${index})">Equipar</button>`
-        }
-        <button type="button" class="btn-danger" onclick="removerItem(${index}, ${isEquipado})">&times;</button>
-      </div>
-    </div>
-    <div class="item-card-body">
-      ${item.img ? `<img src="${item.img}" class="item-img-preview">` : ''}
-      <p style="font-size:0.85rem; color:#a8a8b3;">${item.desc || 'Sem descrição.'}</p>
-    </div>
-  `;
-  return card;
-}
-
-function equiparItem(index) {
-  let inv = [...(fichaAtualData.inventario || [])];
-  let eqp = [...(fichaAtualData.equipados || [])];
-
-  const item = inv.splice(index, 1)[0];
-  eqp.push(item);
-
-  database.ref(`fichas/${fichaAtualId}`).update({ inventario: inv, equipados: eqp });
-}
-
-function desequiparItem(index) {
-  let inv = [...(fichaAtualData.inventario || [])];
-  let eqp = [...(fichaAtualData.equipados || [])];
-
-  const item = eqp.splice(index, 1)[0];
-  inv.push(item);
-
-  database.ref(`fichas/${fichaAtualId}`).update({ inventario: inv, equipados: eqp });
-}
-
-function removerItem(index, isEquipado) {
-  if (isEquipado) {
-    let eqp = [...(fichaAtualData.equipados || [])];
-    eqp.splice(index, 1);
-    database.ref(`fichas/${fichaAtualId}/equipados`).set(eqp);
-  } else {
-    let inv = [...(fichaAtualData.inventario || [])];
-    inv.splice(index, 1);
-    database.ref(`fichas/${fichaAtualId}/inventario`).set(inv);
-  }
-}
-
-function atualizarCargaEBonus() {
-  const forca = parseInt(document.getElementById("attr-forca").value) || 10;
-  const cargaBaseMax = forca * 2;
-
-  let cargaAtual = 0;
-  let cargaExtraTot = 0;
-
-  const todosItens = [...(fichaAtualData?.inventario || []), ...(fichaAtualData?.equipados || [])];
-  const equipados = fichaAtualData?.equipados || [];
-
-  todosItens.forEach(item => {
-    cargaAtual += (item.carga || 0) * (item.qtd || 1);
-  });
-
-  equipados.forEach(item => {
-    if (item.isMochila) cargaExtraTot += (item.bonusCarga || 0);
-  });
-
-  document.getElementById("carga-atual").innerText = cargaAtual.toFixed(1);
-  document.getElementById("carga-base-max").innerText = cargaBaseMax;
-  document.getElementById("carga-extra-display").innerText = `+ ${cargaExtraTot} Kg`;
-
-  const bar = document.getElementById("carga-bar-container");
-  if (cargaAtual > (cargaBaseMax + cargaExtraTot)) {
-    bar.classList.add("carga-excedida");
-  } else {
-    bar.classList.remove("carga-excedida");
-  }
-}
-
-/* ==========================================================================
-   EFEITOS DE STATUS & CONDIÇÕES
-   ========================================================================== */
-function passarTurnoJogador() {
-  if (!fichaAtualData) return;
-  let efeitos = fichaAtualData.efeitosAtivos || [];
-
-  let novosEfeitos = efeitos.map(e => {
-    if (e.duracao && e.duracao > 0) e.duracao -= 1;
-    return e;
-  }).filter(e => e.duracao === undefined || e.duracao > 0);
-
-  database.ref(`fichas/${fichaAtualId}/efeitosAtivos`).set(novosEfeitos);
-  alert("Turno finalizado. Efeitos de duração foram reduzidos!");
-}
-
-function renderEfeitosFicha(efeitos) {
-  const lista = document.getElementById("lista-efeitos");
-  if (!lista) return;
-  lista.innerHTML = "";
-
-  efeitos.forEach((ef, idx) => {
-    const li = document.createElement("li");
-    li.className = "effect-item";
-    li.innerHTML = `
-      <div class="effect-item-header">
-        <strong>[${ef.cat}] ${ef.nome}</strong>
-        <button type="button" class="btn-danger" onclick="removerEfeitoFicha(${idx})">&times;</button>
-      </div>
-      <div class="effect-item-details">
-        <span>Turnos Restantes: ${ef.duracao === 0 ? "Infinito" : ef.duracao}</span>
-        <span>Recurso: ${ef.recurso} (${ef.valorTurno})</span>
+// --- PERÍCIAS ---
+function renderPericias() {
+  const container = document.getElementById('grid-pericias');
+  if (!container) return;
+  container.innerHTML = '';
+  periciasLista.forEach(p => {
+    let val = dadosPericias[p] !== undefined ? dadosPericias[p] : 0;
+    container.innerHTML += `
+      <div class="card-pericia" id="card-pericia-${p}">
+        <label>${p}</label>
+        <div class="card-pericia-inputs">
+          <input type="number" id="pericia-${p}" value="${val}" min="0" onchange="alterarPontosPericia('${p}', this.value)">
+          <span class="bonus-tag" id="bonus-pericia-${p}">+${val * 2}</span>
+        </div>
       </div>
     `;
-    lista.appendChild(li);
   });
 }
 
-function removerEfeitoFicha(index) {
-  let efeitos = [...(fichaAtualData.efeitosAtivos || [])];
-  efeitos.splice(index, 1);
-  database.ref(`fichas/${fichaAtualId}/efeitosAtivos`).set(efeitos);
+function alterarPontosPericia(pericia, valor) {
+  dadosPericias[pericia] = Math.max(0, parseInt(valor) || 0);
+  recalcularTudo();
 }
 
-function escutarEfeitosGlobaisMestre() {
-  database.ref('efeitosGlobais').on('value', (snapshot) => {
-    const data = snapshot.val() || {};
-    const select = document.getElementById("select-efeitos-globais");
-    const listaGm = document.getElementById("lista-efeitos-globais-mestre");
+// --- LÓGICA DE SLOTS DE MAGIA ---
+function calcularSlotsMaximos() {
+  let maximos = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 
-    if (select) select.innerHTML = '<option value="">Selecione um efeito...</option>';
-    if (listaGm) listaGm.innerHTML = '';
+  let nexTexto = document.getElementById('nex')?.value || '0%';
+  let nexNum = parseInt(nexTexto.replace(/[^0-9]/g, '')) || 0;
+  maximos[0] += Math.floor(nexNum / 5);
 
-    Object.keys(data).forEach(key => {
-      const ef = data[key];
+  let nivelPersonagem = parseInt(document.getElementById('nivel')?.value) || 1;
+  nivelPersonagem = Math.min(Math.max(nivelPersonagem, 1), 20);
+  
+  let classeBase = document.getElementById('classe-base')?.value || 'Combatente';
+  if (tabelaClassePadrao[classeBase]) {
+    maximos[0] += tabelaClassePadrao[classeBase][nivelPersonagem - 1];
+  }
 
-      if (select) {
-        const opt = document.createElement("option");
-        opt.value = key;
-        opt.innerText = `${ef.nome} (${ef.cat})`;
-        select.appendChild(opt);
+  if (document.getElementById('classe-magica-1')?.checked) {
+    let nv1 = parseInt(document.getElementById('nv-classe-magica-1')?.value) || 0;
+    if (nv1 > 0) {
+      let idx1 = Math.min(Math.max(nv1, 1), 20) - 1;
+      let slotsClasse1 = tabelaDND[idx1];
+      for (let i = 0; i < 9; i++) {
+        maximos[i] += slotsClasse1[i];
       }
+    }
+  }
 
-      if (listaGm) {
-        const li = document.createElement("li");
-        li.className = "effect-item";
-        li.innerHTML = `<strong>${ef.nome}</strong> - ${ef.cat} (Recurso: ${ef.recurso})`;
-        listaGm.appendChild(li);
+  if (document.getElementById('classe-magica-2')?.checked) {
+    let nv2 = parseInt(document.getElementById('nv-classe-magica-2')?.value) || 0;
+    if (nv2 > 0) {
+      let idx2 = Math.min(Math.max(nv2, 1), 20) - 1;
+      let slotsClasse2 = tabelaDND[idx2];
+      for (let i = 0; i < 9; i++) {
+        maximos[i] += slotsClasse2[i];
       }
+    }
+  }
+
+  return maximos;
+}
+
+function renderizarSlots() {
+  const container = document.getElementById('circulos-grid');
+  if (!container) return;
+
+  const maximos = calcularSlotsMaximos();
+  container.innerHTML = '';
+
+  for (let i = 0; i < 9; i++) {
+    let circulo = i + 1;
+    let atual = slotsAtuais[i] || 0;
+    let max = maximos[i];
+
+    let card = document.createElement('div');
+    card.className = 'circulo-card';
+    card.innerHTML = `
+      <div class="circulo-info">${circulo}º Círculo</div>
+      <div class="circulo-controles">
+        <button type="button" class="btn-slot" onclick="alterarSlot(${i}, -1)">-</button>
+        <span><strong>${atual}</strong> / ${max}</span>
+        <button type="button" class="btn-slot" onclick="alterarSlot(${i}, 1)">+</button>
+        ${i < 8 ? `<button type="button" class="btn-fundir" ${atual < 2 ? 'disabled' : ''} onclick="fundirSlots(${i})">Fundir (2x ➔ 1x Nv.${circulo + 1})</button>` : ''}
+      </div>
+    `;
+    container.appendChild(card);
+  }
+}
+
+function alterarSlot(index, delta) {
+  slotsAtuais[index] = Math.max(0, (slotsAtuais[index] || 0) + delta);
+  renderizarSlots();
+  salvarDados();
+}
+
+function fundirSlots(index) {
+  if (slotsAtuais[index] >= 2 && index < 8) {
+    slotsAtuais[index] -= 2;
+    slotsAtuais[index + 1] = (slotsAtuais[index + 1] || 0) + 1;
+    renderizarSlots();
+    salvarDados();
+  }
+}
+
+function restaurarSlotsDescanso() {
+  const maximos = calcularSlotsMaximos();
+  for (let i = 0; i < 9; i++) {
+    if (slotsAtuais[i] < maximos[i]) {
+      slotsAtuais[i] = maximos[i];
+    }
+  }
+  renderizarSlots();
+  salvarDados();
+}
+
+function zerarTodosSlots() {
+  slotsAtuais = [0, 0, 0, 0, 0, 0, 0, 0, 0];
+  renderizarSlots();
+  salvarDados();
+}
+
+function recalcularSlotsMagia() {
+  renderizarSlots();
+  salvarDados();
+}
+
+// --- CÁLCULO DE VALOR ESCALADO DE EFEITOS ---
+function calcularEfeitoValorEscalado(valorBase, tipoEscala, fator, nivel) {
+  let vBase = parseFloat(valorBase) || 0;
+  let lvl = Math.max(1, parseInt(nivel) || 1);
+  let fat = parseFloat(fator) || 0;
+
+  if (tipoEscala === 'multiplicativo') {
+    return vBase * lvl;
+  } else if (tipoEscala === 'percentual') {
+    return vBase * (1 + ((fat / 100) * (lvl - 1)));
+  } else if (tipoEscala === 'adicao') {
+    return vBase + (fat * (lvl - 1));
+  }
+  return vBase;
+}
+
+// --- RECALCULAR TUDO ---
+function recalcularTudo(deveSalvar = true) {
+  let nivel = parseInt(document.getElementById('nivel').value) || 1;
+  let expNecessario = nivel * 100;
+  document.getElementById('exp-display').value = `${expAtual} / ${expNecessario}`;
+
+  let forcaBase = parseFloat(document.getElementById('attr-forca').value) || 0;
+  let agilidadeBase = parseFloat(document.getElementById('attr-agilidade').value) || 0;
+  let vigorBase = parseFloat(document.getElementById('attr-vigor').value) || 0;
+  let inteligenciaBase = parseFloat(document.getElementById('attr-inteligencia').value) || 0;
+  let presencaBase = parseFloat(document.getElementById('attr-presenca').value) || 0;
+  let carismaBase = parseFloat(document.getElementById('attr-carisma').value) || 0;
+  let sorteBase = parseFloat(document.getElementById('attr-sorte').value) || 0;
+
+  const classeBase = document.getElementById('classe-base').value;
+  let bonusClasse = { pv: 0, pe: 0, san: 0, ma: 0, def: 0, eva: 0, ptsLivre: 0 };
+
+  if (classeBase === 'Combatente') {
+    bonusClasse.pv = 10; bonusClasse.pe = 5; bonusClasse.def = 1; bonusClasse.eva = 1;
+  } else if (classeBase === 'Especialista') {
+    bonusClasse.pe = 4; bonusClasse.ptsLivre = 5;
+  } else if (classeBase === 'Místico') {
+    bonusClasse.pv = 4; bonusClasse.san = 5; bonusClasse.ma = 10;
+  }
+
+  let buffsAcumulados = {};
+
+  // ACUMULAR BUFFS DOS EQUIPAMENTOS
+  equipamentos.forEach(item => {
+    let mult = parseInt(item.qtd) || 1;
+    if (item.buffs) {
+      item.buffs.forEach(b => {
+        buffsAcumulados[b.alvoId] = (buffsAcumulados[b.alvoId] || 0) + (b.val * mult);
+      });
+    }
+  });
+
+  // ACUMULAR BUFFS DOS EFEITOS DE STATUS ATIVOS
+  efeitos.forEach(ef => {
+    let lvl = ef.nivelAtual || 1;
+    if (ef.buffs) {
+      ef.buffs.forEach(b => {
+        let valEscalado = calcularEfeitoValorEscalado(b.val, ef.tipoEscala, ef.fatorEscala, lvl);
+        buffsAcumulados[b.alvoId] = (buffsAcumulados[b.alvoId] || 0) + valEscalado;
+      });
+    }
+  });
+
+  let forca = forcaBase + (buffsAcumulados['attr-forca'] || 0);
+  let agilidade = agilidadeBase + (buffsAcumulados['attr-agilidade'] || 0);
+  let vigor = vigorBase + (buffsAcumulados['attr-vigor'] || 0);
+  let inteligencia = inteligenciaBase + (buffsAcumulados['attr-inteligencia'] || 0);
+  let presenca = presencaBase + (buffsAcumulados['attr-presenca'] || 0);
+  let carisma = carismaBase + (buffsAcumulados['attr-carisma'] || 0);
+  let sorte = sorteBase + (buffsAcumulados['attr-sorte'] || 0);
+
+  const listaAtributos = ['forca', 'agilidade', 'vigor', 'inteligencia', 'presenca', 'carisma', 'sorte'];
+  listaAtributos.forEach(attr => {
+    let inputEl = document.getElementById(`attr-${attr}`);
+    let buffVal = buffsAcumulados[`attr-${attr}`] || 0;
+    
+    let tagAntiga = document.getElementById(`tag-buff-${attr}`);
+    if (tagAntiga) tagAntiga.remove();
+
+    if (buffVal !== 0 && inputEl && inputEl.parentNode) {
+      let novaTag = document.createElement('span');
+      novaTag.id = `tag-buff-${attr}`;
+      novaTag.className = 'bonus-tag ativo';
+      novaTag.style.marginLeft = '8px';
+      novaTag.innerText = buffVal > 0 ? `+${buffVal} Buff` : `${buffVal} Debuff`;
+      
+      inputEl.parentNode.insertBefore(novaTag, inputEl.nextSibling);
+    }
+  });
+
+  document.getElementById('pv-max').value = 10 + vigor + bonusClasse.pv + (buffsAcumulados['status-pv'] || 0);
+  document.getElementById('san-max').value = 4 + presenca + bonusClasse.san + (buffsAcumulados['status-san'] || 0);
+  document.getElementById('pe-max').value = 5 + agilidade + vigor + bonusClasse.pe + (buffsAcumulados['status-pe'] || 0);
+  document.getElementById('ma-max').value = vigor + presenca + sorte + inteligencia + bonusClasse.ma + (buffsAcumulados['status-ma'] || 0);
+  document.getElementById('eva-val').value = agilidade + bonusClasse.eva + (buffsAcumulados['status-eva'] || 0);
+  document.getElementById('def-val').value = Math.floor(vigor / 2) + bonusClasse.def + (buffsAcumulados['status-def'] || 0);
+
+  // ATUALIZAR DEFESAS ESPECÍFICAS COM BUFFS
+  const defsLista = ['perfuracao','queimadura','corte','impacto','balistico','eletricidade','fogo','frio','acido','veneno','magico'];
+  defsLista.forEach(d => {
+    let el = document.getElementById(`def-${d}`);
+    if (el && document.activeElement !== el) {
+      let baseVal = defesasEspecificas[d] || 0;
+      let buffVal = buffsAcumulados[`def-${d}`] || 0;
+      el.value = baseVal + buffVal;
+    }
+  });
+
+  let deslocamentoFinal = Math.floor(agilidade / 2) + (buffsAcumulados['status-deslocamento'] || 0);
+  document.getElementById('deslocamento-val').value = `${Math.max(0, deslocamentoFinal)}m`;
+
+  let ptsLivresTotais = inteligencia + bonusClasse.ptsLivre;
+  let ptsLivresGastos = 0;
+  let ptsClasseTotais = 0;
+  let ptsClasseGastos = 0;
+  let listaRestritas = [];
+
+  if (classeBase === 'Místico') {
+    listaRestritas = ["Arcanismo", "Ocultismo", "Magia"];
+    ptsClasseTotais = 1;
+  } else if (classeBase === 'Combatente') {
+    listaRestritas = ["Luta", "Pontaria", "Reflexos", "Fortitude"];
+    ptsClasseTotais = 2;
+  }
+
+  periciasLista.forEach(p => {
+    let pontosColocados = dadosPericias[p] !== undefined ? dadosPericias[p] : 0;
+    if (listaRestritas.includes(p)) {
+      let paraClasse = Math.min(pontosColocados, ptsClasseTotais - ptsClasseGastos);
+      ptsClasseGastos += paraClasse;
+      ptsLivresGastos += (pontosColocados - paraClasse);
+    } else {
+      ptsLivresGastos += pontosColocados;
+    }
+  });
+
+  let classePontosRestantes = ptsClasseTotais - ptsClasseGastos;
+
+  periciasLista.forEach(p => {
+    let input = document.getElementById(`pericia-${p}`);
+    let tagBonus = document.getElementById(`bonus-pericia-${p}`);
+    let cardEl = document.getElementById(`card-pericia-${p}`);
+    let bonusItem = buffsAcumulados[`pericia-${p}`] || 0;
+    
+    let bonusMisticoVontade = (classeBase === 'Místico' && p === 'Vontade') ? 1 : 0;
+    let pontosColocados = dadosPericias[p] !== undefined ? dadosPericias[p] : 0;
+
+    if (input && document.activeElement !== input) input.value = pontosColocados;
+
+    if (cardEl) {
+      if (listaRestritas.includes(p) && classePontosRestantes > 0) {
+        cardEl.classList.add('pericia-restrita');
+      } else {
+        cardEl.classList.remove('pericia-restrita');
+      }
+    }
+
+    let totalPontosEfetivos = pontosColocados + bonusMisticoVontade;
+    let valorTotalRole = (totalPontosEfetivos * 2) + bonusItem;
+    
+    if (tagBonus) {
+      tagBonus.innerText = valorTotalRole >= 0 ? `+${valorTotalRole}` : `${valorTotalRole}`;
+      if (totalPontosEfetivos > 0 || bonusItem !== 0) tagBonus.classList.add('ativo');
+      else tagBonus.classList.remove('ativo');
+    }
+  });
+
+  document.getElementById('pts-livres-totais').innerText = ptsLivresTotais;
+  let livresRestantes = ptsLivresTotais - ptsLivresGastos;
+  document.getElementById('pts-livres-restantes').innerText = livresRestantes;
+  document.getElementById('pts-livres-restantes').style.color = livresRestantes < 0 ? '#ff4655' : '#00ff88';
+
+  const containerClasse = document.getElementById('tracker-classe-container');
+  if (ptsClasseTotais > 0) {
+    containerClasse.style.display = 'block';
+    let labelText = classeBase === 'Místico' ? 'Pontos Místicos (Arcanismo, Ocultismo, Magia):' : 'Pontos Combatente (Luta, Pontaria, Reflexos, Fortitude):';
+    document.getElementById('label-pts-classe').innerText = labelText;
+    document.getElementById('pts-classe-totais').innerText = ptsClasseTotais;
+    document.getElementById('pts-classe-restantes').innerText = classePontosRestantes;
+    document.getElementById('pts-classe-restantes').style.color = classePontosRestantes < 0 ? '#ff4655' : '#00ff88';
+  } else {
+    containerClasse.style.display = 'none';
+  }
+
+  let cargaBaseMax = forca;
+  let cargaExtraMochilas = 0;
+  let pesoProprioMochilasEquipadas = 0;
+
+  equipamentos.forEach(item => {
+    let qtd = parseFloat(item.qtd) || 1;
+    let pesoUnitario = parseFloat(item.carga) || 0;
+    if (item.mochila) {
+      cargaExtraMochilas += (parseFloat(item.bonusCarga) || 0) * qtd;
+      pesoProprioMochilasEquipadas += pesoUnitario * qtd;
+    }
+  });
+
+  let pesoInventario = inventario.reduce((acc, item) => acc + ((parseFloat(item.carga) || 0) * (parseFloat(item.qtd) || 1)), 0);
+  let cargaAtualTotal = pesoInventario + pesoProprioMochilasEquipadas;
+
+  document.getElementById('carga-atual').innerText = cargaAtualTotal.toFixed(1).replace('.0', '');
+  document.getElementById('carga-base-max').innerText = cargaBaseMax;
+  document.getElementById('carga-extra-display').innerText = `+ ${cargaExtraMochilas} Kg`;
+
+  const containerCarga = document.getElementById('carga-bar-container');
+  const alertaMochila = document.getElementById('alerta-mochila-excesso');
+
+  if (pesoProprioMochilasEquipadas > cargaBaseMax) {
+    containerCarga.classList.add('carga-excedida');
+    if (alertaMochila) alertaMochila.style.display = 'block';
+  } else {
+    containerCarga.classList.remove('carga-excedida');
+    if (alertaMochila) alertaMochila.style.display = 'none';
+  }
+
+  renderizarSlots();
+
+  if (deveSalvar) salvarDados();
+}
+
+// --- GERENCIAMENTO DE ITENS ---
+function criarItem() {
+  let nome = document.getElementById('item-nome').value;
+  let qtd = parseInt(document.getElementById('item-qtd').value) || 1;
+  let carga = parseFloat(document.getElementById('item-carga').value) || 0;
+  let mochila = document.getElementById('item-is-mochila').checked;
+  let bonusCarga = parseFloat(document.getElementById('item-bonus-carga').value) || 0;
+  let desc = document.getElementById('item-desc').value;
+  let fileInput = document.getElementById('item-img-input');
+
+  let efeitoTurnoRecurso = document.getElementById('item-turno-recurso').value;
+  let efeitoTurnoValor = parseInt(document.getElementById('item-turno-valor').value) || 0;
+
+  if (!nome) return alert("Por favor, digite o nome do item!");
+
+  const processarItem = (imagemBase64) => {
+    inventario.push({ 
+      id: Date.now(), 
+      nome, qtd, carga, mochila, bonusCarga, desc, 
+      imagem: imagemBase64, 
+      buffs: [...buffsTempItem],
+      efeitoTurno: { recurso: efeitoTurnoRecurso, valor: efeitoTurnoValor }
     });
+    document.getElementById('item-nome').value = '';
+    document.getElementById('item-qtd').value = '1';
+    document.getElementById('item-carga').value = '1';
+    document.getElementById('item-desc').value = '';
+    document.getElementById('item-is-mochila').checked = false;
+    document.getElementById('item-bonus-carga').value = '0';
+    document.getElementById('item-turno-recurso').value = 'none';
+    document.getElementById('item-turno-valor').value = '0';
+    if (fileInput) fileInput.value = '';
+    buffsTempItem = [];
+    renderBuffsTemp();
+    renderItens();
+    recalcularTudo();
+  };
+
+  if (fileInput && fileInput.files && fileInput.files[0]) {
+    const reader = new FileReader();
+    reader.onload = (e) => processarItem(e.target.result);
+    reader.readAsDataURL(fileInput.files[0]);
+  } else { processarItem(null); }
+}
+
+function renderItens() {
+  const invContainer = document.getElementById('lista-inventario');
+  const eqpContainer = document.getElementById('lista-equipamentos');
+  if (!invContainer || !eqpContainer) return;
+
+  invContainer.innerHTML = ''; eqpContainer.innerHTML = '';
+
+  inventario.forEach(item => {
+    let pesoTotal = (item.carga * item.qtd).toFixed(1).replace('.0', '');
+    let tagsBuffs = item.buffs ? item.buffs.map(b => `<span class="buff-tag">${b.alvoNome}: ${b.val>0?'+':''}${b.val}</span>`).join('') : '';
+    if (item.efeitoTurno && item.efeitoTurno.recurso !== 'none' && item.efeitoTurno.valor !== 0) {
+      tagsBuffs += `<span class="buff-tag" style="background:#00d2ff; color:#000;">${item.efeitoTurno.valor>0?'+':''}${item.efeitoTurno.valor} ${item.efeitoTurno.recurso.toUpperCase()}/turno</span>`;
+    }
+    let imgHTML = item.imagem ? `<img src="${item.imagem}" class="item-img-preview" alt="item">` : '';
+
+    invContainer.innerHTML += `
+      <div class="item-card">
+        <div class="item-card-header">
+          <span>${item.nome} ${item.mochila ? `[Mochila]` : ''}</span>
+          <div class="item-inputs">
+            <label>Qtd:</label>
+            <input type="number" value="${item.qtd}" min="1" onchange="alterarQtdItem(${item.id}, 'inv', this.value)">
+            <small>(${pesoTotal} Kg)</small>
+          </div>
+        </div>
+        <div class="buffs-tags">${tagsBuffs}</div>
+        <div class="item-card-body">
+          ${imgHTML}
+          <textarea rows="3" onchange="atualizarDescItem(${item.id}, 'inv', this.value)">${item.desc}</textarea>
+        </div>
+        <div class="item-card-actions">
+          <button class="btn-sub" onclick="equiparItem(${item.id})">Equipar ➔</button>
+          <button class="btn-danger" onclick="removerItem(${item.id}, 'inv')">Deletar</button>
+        </div>
+      </div>
+    `;
+  });
+
+  equipamentos.forEach(item => {
+    let tagsBuffs = item.buffs ? item.buffs.map(b => `<span class="buff-tag">${b.alvoNome}: ${b.val>0?'+':''}${b.val}</span>`).join('') : '';
+    if (item.efeitoTurno && item.efeitoTurno.recurso !== 'none' && item.efeitoTurno.valor !== 0) {
+      tagsBuffs += `<span class="buff-tag" style="background:#00d2ff; color:#000;">${item.efeitoTurno.valor>0?'+':''}${item.efeitoTurno.valor} ${item.efeitoTurno.recurso.toUpperCase()}/turno</span>`;
+    }
+    let imgHTML = item.imagem ? `<img src="${item.imagem}" class="item-img-preview" alt="item">` : '';
+
+    eqpContainer.innerHTML += `
+      <div class="item-card">
+        <div class="item-card-header">
+          <span>${item.nome} ${item.mochila ? `[+${item.bonusCarga * item.qtd} Carga Extra]` : ''}</span>
+          <div class="item-inputs">
+            <label>Qtd:</label>
+            <input type="number" value="${item.qtd}" min="1" onchange="alterarQtdItem(${item.id}, 'eqp', this.value)">
+          </div>
+        </div>
+        <div class="buffs-tags">${tagsBuffs}</div>
+        <div class="item-card-body">
+          ${imgHTML}
+          <textarea rows="3" onchange="atualizarDescItem(${item.id}, 'eqp', this.value)">${item.desc}</textarea>
+        </div>
+        <div class="item-card-actions">
+          <button class="btn-sub" onclick="desequiparItem(${item.id})">⬅ Desequipar</button>
+          <button class="btn-danger" onclick="removerItem(${item.id}, 'eqp')">Deletar</button>
+        </div>
+      </div>
+    `;
+  });
+}
+
+function alterarQtdItem(id, local, novaQtd) {
+  let lista = local === 'inv' ? inventario : equipamentos;
+  let item = lista.find(i => i.id === id);
+  if (item) {
+    item.qtd = Math.max(1, parseInt(novaQtd) || 1);
+    renderItens();
+    recalcularTudo();
+  }
+}
+
+function atualizarDescItem(id, local, novaDesc) {
+  let lista = local === 'inv' ? inventario : equipamentos;
+  let item = lista.find(i => i.id === id);
+  if (item) { item.desc = novaDesc; salvarDados(); }
+}
+
+function equiparItem(id) {
+  let idx = inventario.findIndex(i => i.id === id);
+  if (idx !== -1) {
+    equipamentos.push(inventario.splice(idx, 1)[0]);
+    renderItens();
+    recalcularTudo();
+  }
+}
+
+function desequiparItem(id) {
+  let idx = equipamentos.findIndex(i => i.id === id);
+  if (idx !== -1) {
+    inventario.push(equipamentos.splice(idx, 1)[0]);
+    renderItens();
+    recalcularTudo();
+  }
+}
+
+function removerItem(id, local) {
+  if (local === 'inv') inventario = inventario.filter(i => i.id !== id);
+  if (local === 'eqp') equipamentos = equipamentos.filter(i => i.id !== id);
+  renderItens();
+  recalcularTudo();
+}
+
+// --- EFEITOS DE STATUS (PAINEL DO MESTRE & BANCO DE DADOS) ---
+function adicionarBuffEfeitoGmMtemp() {
+  const select = document.getElementById('gm-effect-buff-alvo');
+  const alvoId = select.value;
+  const alvoNome = select.options[select.selectedIndex].text;
+  const val = parseInt(document.getElementById('gm-effect-buff-valor').value) || 0;
+  if (val === 0) return;
+  buffsTempGmEffect.push({ alvoId, alvoNome, val });
+  renderBuffsGmEffectTemp();
+}
+
+function renderBuffsGmEffectTemp() {
+  const container = document.getElementById('lista-gm-effect-buffs-temp');
+  if (!container) return;
+  container.innerHTML = buffsTempGmEffect.map((b, idx) => `
+    <span class="buff-tag">${b.alvoNome}: ${b.val > 0 ? '+' : ''}${b.val} <span onclick="removerBuffGmEffectTemp(${idx})">×</span></span>
+  `).join('');
+}
+
+function removerBuffGmEffectTemp(idx) {
+  buffsTempGmEffect.splice(idx, 1);
+  renderBuffsGmEffectTemp();
+}
+
+function salvarEfeitoGlobalMestre() {
+  let nome = document.getElementById('gm-effect-nome').value.trim();
+  if (!nome) return alert("Digite o nome do efeito!");
+
+  let cat = document.getElementById('gm-effect-cat').value;
+  let continuo = document.getElementById('gm-effect-is-continuous').value === 'sim';
+  let recurso = document.getElementById('gm-effect-recurso').value;
+  let valorTurno = parseInt(document.getElementById('gm-effect-valor-turno').value) || 0;
+  let duracao = parseInt(document.getElementById('gm-effect-duracao').value) || 0;
+  let turnosEvoluir = parseInt(document.getElementById('gm-effect-turnos-evoluir').value) || 0;
+  let tipoEscala = document.getElementById('gm-effect-tipo-escala').value;
+  let fatorEscala = parseFloat(document.getElementById('gm-effect-fator-escala').value) || 0;
+
+  let id = Date.now();
+  let novoEfeito = {
+    id, nome, cat, continuo, recurso, valorTurno, duracao, turnosEvoluir, tipoEscala, fatorEscala,
+    buffs: [...buffsTempGmEffect]
+  };
+
+  database.ref('efeitosGlobais/' + id).set(novoEfeito, (err) => {
+    if (!err) {
+      alert("Efeito de status salvo com sucesso no Banco de Dados!");
+      document.getElementById('gm-effect-nome').value = '';
+      buffsTempGmEffect = [];
+      renderBuffsGmEffectTemp();
+    }
+  });
+}
+
+function renderEfeitosGlobaisNoMestre() {
+  const container = document.getElementById('lista-efeitos-globais-mestre');
+  if (!container) return;
+  container.innerHTML = '';
+
+  Object.keys(efeitosGlobaisSalvos).forEach(id => {
+    let e = efeitosGlobaisSalvos[id];
+    container.innerHTML += `
+      <li class="effect-item">
+        <div class="effect-item-header">
+          <span><strong>[${e.cat}]</strong> ${e.nome}</span>
+          <button class="btn-danger" onclick="excluirEfeitoGlobalMestre('${e.id}')">Excluir do Banco</button>
+        </div>
+        <div class="effect-item-details">
+          <span>Turno: ${e.continuo ? `${e.valorTurno > 0 ? '+' : ''}${e.valorTurno} ${e.recurso.toUpperCase()}` : 'Nenhum'}</span>
+          <span>Duração: ${e.duracao > 0 ? `${e.duracao} Turnos` : 'Infinita'}</span>
+          <span>Escalabilidade: ${e.tipoEscala} (${e.fatorEscala})</span>
+        </div>
+      </li>
+    `;
+  });
+}
+
+function excluirEfeitoGlobalMestre(id) {
+  if (confirm("Deseja excluir este efeito do banco de dados?")) {
+    database.ref('efeitosGlobais/' + id).remove();
+  }
+}
+
+function popularSelectEfeitosGlobais() {
+  const select = document.getElementById('select-efeitos-globais');
+  if (!select) return;
+  select.innerHTML = '<option value="">Selecione um efeito...</option>';
+  Object.keys(efeitosGlobaisSalvos).forEach(id => {
+    let e = efeitosGlobaisSalvos[id];
+    select.innerHTML += `<option value="${e.id}">[${e.cat}] ${e.nome}</option>`;
   });
 }
 
 function adicionarEfeitoGlobalNaFicha() {
-  const key = document.getElementById("select-efeitos-globais").value;
-  if (!key) return;
+  const select = document.getElementById('select-efeitos-globais');
+  let id = select.value;
+  if (!id || !efeitosGlobaisSalvos[id]) return alert("Selecione um efeito válido!");
 
-  database.ref('efeitosGlobais/' + key).once('value', (snapshot) => {
-    const efeito = snapshot.val();
-    if (!efeito) return;
-
-    let ativos = [...(fichaAtualData.efeitosAtivos || [])];
-    ativos.push(efeito);
-    database.ref(`fichas/${fichaAtualId}/efeitosAtivos`).set(ativos);
+  let efeitoBase = efeitosGlobaisSalvos[id];
+  efeitos.push({
+    ...efeitoBase,
+    idInstancia: Date.now(),
+    nivelAtual: 1,
+    turnosPassados: 0
   });
+
+  renderEfeitos();
+  recalcularTudo();
 }
 
-function adicionarBuffEfeitoGmMtemp() {
-  const alvo = document.getElementById("gm-effect-buff-alvo").value;
-  const val = parseInt(document.getElementById("gm-effect-buff-valor").value) || 0;
-
-  buffsGmEffectTemp.push({ alvo, valor: val });
-  renderBuffsTagsTemp("lista-gm-effect-buffs-temp", buffsGmEffectTemp);
-}
-
-function salvarEfeitoGlobalMestre() {
-  const nome = document.getElementById("gm-effect-nome").value.trim();
-  if (!nome) {
-    alert("Digite o nome do efeito!");
-    return;
-  }
-
-  const novoEfeito = {
-    nome,
-    cat: document.getElementById("gm-effect-cat").value,
-    isContinuous: document.getElementById("gm-effect-is-continuous").value,
-    recurso: document.getElementById("gm-effect-recurso").value,
-    valorTurno: parseInt(document.getElementById("gm-effect-valor-turno").value) || 0,
-    duracao: parseInt(document.getElementById("gm-effect-duracao").value) || 0,
-    turnosEvoluir: parseInt(document.getElementById("gm-effect-turnos-evoluir").value) || 0,
-    tipoEscala: document.getElementById("gm-effect-tipo-escala").value,
-    fatorEscala: parseFloat(document.getElementById("gm-effect-fator-escala").value) || 0,
-    buffs: [...buffsGmEffectTemp]
-  };
-
-  database.ref('efeitosGlobais').push(novoEfeito);
-  alert("Efeito registrado com sucesso no Banco de Dados!");
-
-  document.getElementById("gm-effect-nome").value = "";
-  buffsGmEffectTemp = [];
-  renderBuffsTagsTemp("lista-gm-effect-buffs-temp", buffsGmEffectTemp);
-}
-
-/* ==========================================================================
-   BLOCO DE ANOTAÇÕES
-   ========================================================================== */
-function criarBlocoAnotacao() {
-  let anotacoes = [...(fichaAtualData?.anotacoes || [])];
-  anotacoes.push({ titulo: "Nova Anotação", texto: "" });
-  database.ref(`fichas/${fichaAtualId}/anotacoes`).set(anotacoes);
-}
-
-function renderAnotacoesFicha(blocos) {
-  const container = document.getElementById("container-anotacoes");
+function renderEfeitos() {
+  const container = document.getElementById('lista-efeitos');
   if (!container) return;
-  container.innerHTML = "";
+  container.innerHTML = '';
 
-  blocos.forEach((b, idx) => {
-    const card = document.createElement("div");
-    card.className = "bloco-card";
-    card.innerHTML = `
-      <input type="text" value="${b.titulo || ''}" onchange="atualizarAnotacao(${idx}, 'titulo', this.value)">
-      <textarea rows="4" onchange="atualizarAnotacao(${idx}, 'texto', this.value)">${b.texto || ''}</textarea>
-      <button type="button" class="btn-danger" onclick="removerAnotacao(${idx})">Excluir Bloco</button>
+  efeitos.forEach(e => {
+    let lvl = e.nivelAtual || 1;
+    let vTurnoEscalado = calcularEfeitoValorEscalado(e.valorTurno || 0, e.tipoEscala, e.fatorEscala, lvl);
+
+    let detalheTurno = e.continuo && e.recurso !== 'none' ? `${vTurnoEscalado > 0 ? '+' : ''}${vTurnoEscalado} ${e.recurso.toUpperCase()}/turno` : 'Sem dano contínuo';
+    let detalheDuracao = e.duracao > 0 ? `Turnos: ${e.turnosPassados || 0}/${e.duracao}` : 'Duração Infinita';
+
+    container.innerHTML += `
+      <li class="effect-item">
+        <div class="effect-item-header">
+          <span><strong>[${e.cat}]</strong> ${e.nome}</span>
+          <div class="effect-item-controls">
+            <label>Nível:</label>
+            <input type="number" value="${lvl}" min="1" onchange="alterarNivelEfeito(${e.idInstancia}, this.value)">
+            <button class="btn-danger" onclick="removerEfeitoInstancia(${e.idInstancia})">Remover</button>
+          </div>
+        </div>
+        <div class="effect-item-details">
+          <span>${detalheTurno}</span>
+          <span>${detalheDuracao}</span>
+          <span>Escala (${e.tipoEscala}): Nv.${lvl}</span>
+        </div>
+      </li>
     `;
-    container.appendChild(card);
   });
 }
 
-function atualizarAnotacao(idx, campo, valor) {
-  let anotacoes = [...(fichaAtualData.anotacoes || [])];
-  if (anotacoes[idx]) {
-    anotacoes[idx][campo] = valor;
-    database.ref(`fichas/${fichaAtualId}/anotacoes`).set(anotacoes);
+function alterarNivelEfeito(idInstancia, novoNivel) {
+  let ef = efeitos.find(e => e.idInstancia === idInstancia);
+  if (ef) {
+    ef.nivelAtual = Math.max(1, parseInt(novoNivel) || 1);
+    renderEfeitos();
+    recalcularTudo();
   }
 }
 
-function removerAnotacao(idx) {
-  let anotacoes = [...(fichaAtualData.anotacoes || [])];
-  anotacoes.splice(idx, 1);
-  database.ref(`fichas/${fichaAtualId}/anotacoes`).set(anotacoes);
+function removerEfeitoInstancia(idInstancia) {
+  efeitos = efeitos.filter(e => e.idInstancia !== idInstancia);
+  renderEfeitos();
+  recalcularTudo();
 }
 
-/* ==========================================================================
-   DASHBOARD DO MESTRE (LISTAGEM DE FICHAS EM TEMPO REAL)
-   ========================================================================== */
-function carregarDashboardMestre() {
-  const grid = document.getElementById("gm-cards-list");
-  if (!grid) return;
-
-  database.ref('fichas').on('value', (snapshot) => {
-    grid.innerHTML = "";
-    const data = snapshot.val() || {};
-
-    Object.keys(data).forEach(id => {
-      const f = data[id];
-      const card = document.createElement("div");
-      card.className = "gm-card";
-      card.innerHTML = `
-        <div class="gm-card-header">
-          <h3>${f.nome || id}</h3>
-          <button type="button" class="btn-sub" onclick="abrirFichaComoMestre('${id}')">Inspecionar</button>
-        </div>
-        <div class="gm-card-stats">
-          <span>PV: <strong>${f.pvAtual || 0} / ${f.pvMax || 0}</strong></span>
-          <span>PE: <strong>${f.peAtual || 0} / ${f.peMax || 0}</strong></span>
-          <span>SAN: <strong>${f.sanAtual || 0} / ${f.sanMax || 0}</strong></span>
-          <span>DEF: <strong>${f.defensa || 10}</strong></span>
-        </div>
-      `;
-      grid.appendChild(card);
-    });
-  });
+// --- PASSAR TURNO & AUTOMAÇÕES ---
+function passarTurnoJogador() {
+  processarPassagemDeTurnoLocal();
+  salvarDados();
+  alert("Seu turno foi concluído e os efeitos/recursos foram atualizados!");
 }
 
 function mestrePassarTurnoGeral() {
-  if (!confirm("Avançar o turno de todas as fichas ativas?")) return;
+  if (!confirm("Deseja passar o turno de TODOS os jogadores salvos no banco?")) return;
 
   database.ref('fichas').once('value', (snapshot) => {
-    const fichas = snapshot.val() || {};
-    Object.keys(fichas).forEach(id => {
-      let efeitos = fichas[id].efeitosAtivos || [];
-      let novosEfeitos = efeitos.map(e => {
-        if (e.duracao && e.duracao > 0) e.duracao -= 1;
-        return e;
-      }).filter(e => e.duracao === undefined || e.duracao > 0);
+    const fichas = snapshot.val();
+    if (!fichas) return alert("Nenhuma ficha encontrada.");
 
-      database.ref(`fichas/${id}/efeitosAtivos`).set(novosEfeitos);
+    Object.keys(fichas).forEach(id => {
+      let f = fichas[id];
+      f = processarTurnoFichaObjeto(f);
+      database.ref('fichas/' + id).update(f);
     });
-    alert("Turno global executado com sucesso!");
+
+    alert("Turno de todas as fichas foi processado com sucesso!");
   });
+}
+
+function processarPassagemDeTurnoLocal() {
+  // APLICA EFEITOS CONTÍNUOS DE ITENS EQUIPADOS
+  equipamentos.forEach(item => {
+    let mult = parseInt(item.qtd) || 1;
+    if (item.efeitoTurno && item.efeitoTurno.recurso !== 'none' && item.efeitoTurno.valor !== 0) {
+      aplicarRecursoNoCampo(item.efeitoTurno.recurso, item.efeitoTurno.valor * mult);
+    }
+  });
+
+  // APLICA EFEITOS DE STATUS ATIVOS
+  let novosEfeitos = [];
+  efeitos.forEach(e => {
+    let lvl = e.nivelAtual || 1;
+    let vTurnoEscalado = calcularEfeitoValorEscalado(e.valorTurno || 0, e.tipoEscala, e.fatorEscala, lvl);
+
+    if (e.continuo && e.recurso !== 'none' && vTurnoEscalado !== 0) {
+      aplicarRecursoNoCampo(e.recurso, vTurnoEscalado);
+    }
+
+    e.turnosPassados = (e.turnosPassados || 0) + 1;
+
+    if (e.turnosEvoluir > 0 && e.turnosPassados % e.turnosEvoluir === 0) {
+      e.nivelAtual = lvl + 1;
+    }
+
+    if (e.duracao === 0 || e.turnosPassados < e.duracao) {
+      novosEfeitos.push(e);
+    }
+  });
+
+  efeitos = novosEfeitos;
+  renderEfeitos();
+  recalcularTudo();
+}
+
+function processarTurnoFichaObjeto(f) {
+  // AUTOMAÇÃO OBJECT-BASED PARA O MESTRE
+  let eqp = f.equipamentos || [];
+  let efts = f.efeitos || [];
+
+  eqp.forEach(item => {
+    let mult = parseInt(item.qtd) || 1;
+    if (item.efeitoTurno && item.efeitoTurno.recurso !== 'none' && item.efeitoTurno.valor !== 0) {
+      modificarRecursoObjeto(f, item.efeitoTurno.recurso, item.efeitoTurno.valor * mult);
+    }
+  });
+
+  let novosEfts = [];
+  efts.forEach(e => {
+    let lvl = e.nivelAtual || 1;
+    let vTurnoEscalado = calcularEfeitoValorEscalado(e.valorTurno || 0, e.tipoEscala, e.fatorEscala, lvl);
+
+    if (e.continuo && e.recurso !== 'none' && vTurnoEscalado !== 0) {
+      modificarRecursoObjeto(f, e.recurso, vTurnoEscalado);
+    }
+
+    e.turnosPassados = (e.turnosPassados || 0) + 1;
+
+    if (e.turnosEvoluir > 0 && e.turnosPassados % e.turnosEvoluir === 0) {
+      e.nivelAtual = lvl + 1;
+    }
+
+    if (e.duracao === 0 || e.turnosPassados < e.duracao) {
+      novosEfts.push(e);
+    }
+  });
+
+  f.efeitos = novosEfts;
+  return f;
+}
+
+function aplicarRecursoNoCampo(recurso, delta) {
+  let idCampo = `${recurso}-atual`;
+  let idMax = `${recurso}-max`;
+  let elAtual = document.getElementById(idCampo);
+  let elMax = document.getElementById(idMax);
+
+  if (elAtual) {
+    let valAtual = parseInt(elAtual.value) || 0;
+    let valMax = elMax ? (parseInt(elMax.value) || 9999) : 9999;
+    let novoVal = Math.min(valMax, Math.max(0, valAtual + delta));
+    elAtual.value = novoVal;
+  }
+}
+
+function modificarRecursoObjeto(f, recurso, delta) {
+  let chaveAtual = `${recurso}Atual`;
+  let chaveMax = `${recurso}Max`;
+
+  let valAtual = parseInt(f[chaveAtual]) || 0;
+  let valMax = parseInt(f[chaveMax]) || 9999;
+  f[chaveAtual] = Math.min(valMax, Math.max(0, valAtual + delta));
+}
+
+// --- BLOCOS DE ANOTAÇÕES ---
+function criarBlocoAnotacao() {
+  blocosAnotacoes.push({ id: Date.now(), titulo: "Nova Anotação", texto: "" });
+  renderBlocosAnotacoes();
+  salvarDados();
+}
+
+function renderBlocosAnotacoes() {
+  const container = document.getElementById('container-anotacoes');
+  if (!container) return;
+  container.innerHTML = '';
+
+  blocosAnotacoes.forEach((b, idx) => {
+    container.innerHTML += `
+      <div class="bloco-card">
+        <input type="text" value="${b.titulo}" onchange="atualizarTituloAnotacao(${idx}, this.value)">
+        <textarea rows="6" onchange="atualizarTextoAnotacao(${idx}, this.value)">${b.texto}</textarea>
+        <button class="btn-danger" onclick="removerBlocoAnotacao(${idx})">Excluir Bloco</button>
+      </div>
+    `;
+  });
+}
+
+function atualizarTituloAnotacao(idx, novoTitulo) {
+  if (blocosAnotacoes[idx]) { blocosAnotacoes[idx].titulo = novoTitulo; salvarDados(); }
+}
+
+function atualizarTextoAnotacao(idx, novoTexto) {
+  if (blocosAnotacoes[idx]) { blocosAnotacoes[idx].texto = novoTexto; salvarDados(); }
+}
+
+function removerBlocoAnotacao(idx) {
+  blocosAnotacoes.splice(idx, 1);
+  renderBlocosAnotacoes();
+  salvarDados();
 }
