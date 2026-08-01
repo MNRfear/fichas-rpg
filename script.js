@@ -250,10 +250,8 @@ function aplicarDadosFicha(data) {
   atualizarCampoSeInativo('attr-carisma', data.attrCarisma || 10);
   atualizarCampoSeInativo('attr-sorte', data.attrSorte || 10);
 
+  // Carrega a base pura do objeto salvo no Firebase
   defesasEspecificas = data.defesasEspecificas || { perfuracao:0, queimadura:0, corte:0, impacto:0, balistico:0, eletricidade:0, fogo:0, frio:0, acido:0, veneno:0, magico:0 };
-  Object.keys(defesasEspecificas).forEach(k => {
-    atualizarCampoSeInativo(`def-${k}`, defesasEspecificas[k]);
-  });
 
   atualizarCampoSeInativo('hab-unicas', data.habUnicas || '');
   atualizarCampoSeInativo('hab-lendarias', data.habLendarias || '');
@@ -290,20 +288,6 @@ function aplicarDadosFicha(data) {
 function salvarDados() {
   if (!idFichaAtual) return;
 
-  const defEspecificasSalvar = {
-    perfuracao: parseInt(document.getElementById('def-perfuracao')?.value) || 0,
-    queimadura: parseInt(document.getElementById('def-queimadura')?.value) || 0,
-    corte: parseInt(document.getElementById('def-corte')?.value) || 0,
-    impacto: parseInt(document.getElementById('def-impacto')?.value) || 0,
-    balistico: parseInt(document.getElementById('def-balistico')?.value) || 0,
-    eletricidade: parseInt(document.getElementById('def-eletricidade')?.value) || 0,
-    fogo: parseInt(document.getElementById('def-fogo')?.value) || 0,
-    frio: parseInt(document.getElementById('def-frio')?.value) || 0,
-    acido: parseInt(document.getElementById('def-acido')?.value) || 0,
-    veneno: parseInt(document.getElementById('def-veneno')?.value) || 0,
-    magico: parseInt(document.getElementById('def-magico')?.value) || 0
-  };
-
   const estadoFicha = {
     nome: document.getElementById('nome').value,
     nivel: document.getElementById('nivel').value,
@@ -337,7 +321,7 @@ function salvarDados() {
     attrCarisma: document.getElementById('attr-carisma').value,
     attrSorte: document.getElementById('attr-sorte').value,
 
-    defesasEspecificas: defEspecificasSalvar,
+    defesasEspecificas: defesasEspecificas, // Salva a BASE pura sem acumular buffs
 
     habUnicas: document.getElementById('hab-unicas').value,
     habLendarias: document.getElementById('hab-lendarias').value,
@@ -730,14 +714,19 @@ function recalcularTudo(deveSalvar = true) {
   document.getElementById('eva-val').value = agilidade + bonusClasse.eva + (buffsAcumulados['status-eva'] || 0);
   document.getElementById('def-val').value = Math.floor(vigor / 2) + bonusClasse.def + (buffsAcumulados['status-def'] || 0);
 
-  // ATUALIZAR DEFESAS ESPECÍFICAS COM BUFFS
+  // ATUALIZAR DEFESAS ESPECÍFICAS EXIBIDAS (BASE + BUFF)
   const defsLista = ['perfuracao','queimadura','corte','impacto','balistico','eletricidade','fogo','frio','acido','veneno','magico'];
   defsLista.forEach(d => {
     let el = document.getElementById(`def-${d}`);
-    if (el && document.activeElement !== el) {
-      let baseVal = defesasEspecificas[d] || 0;
-      let buffVal = buffsAcumulados[`def-${d}`] || 0;
-      el.value = baseVal + buffVal;
+    if (el) {
+      if (document.activeElement === el) {
+        let buffVal = buffsAcumulados[`def-${d}`] || 0;
+        defesasEspecificas[d] = (parseInt(el.value) || 0) - buffVal;
+      } else {
+        let baseVal = defesasEspecificas[d] || 0;
+        let buffVal = buffsAcumulados[`def-${d}`] || 0;
+        el.value = baseVal + buffVal;
+      }
     }
   });
 
