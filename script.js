@@ -304,6 +304,8 @@ function salvarDados() {
     magico: parseInt(document.getElementById('def-magico')?.value) || 0
   };
 
+  defesasEspecificas = defEspecificasSalvar;
+
   const estadoFicha = {
     nome: document.getElementById('nome').value,
     nivel: document.getElementById('nivel').value,
@@ -632,7 +634,7 @@ function recalcularSlotsMagia() {
   salvarDados();
 }
 
-// --- CÁLCULO DE VALOR ESCALADO DE EFEITOS ---
+// --- CÁLCULO DE VALOR ESCALADO DE EFEITOS (EXPONENCIAL INCLUÍDA) ---
 function calcularEfeitoValorEscalado(valorBase, tipoEscala, fator, nivel) {
   let vBase = parseFloat(valorBase) || 0;
   let lvl = Math.max(1, parseInt(nivel) || 1);
@@ -644,6 +646,8 @@ function calcularEfeitoValorEscalado(valorBase, tipoEscala, fator, nivel) {
     return vBase * (1 + ((fat / 100) * (lvl - 1)));
   } else if (tipoEscala === 'adicao') {
     return vBase + (fat * (lvl - 1));
+  } else if (tipoEscala === 'exponencial') {
+    return vBase * Math.pow(fat, lvl - 1);
   }
   return vBase;
 }
@@ -690,8 +694,8 @@ function recalcularTudo(deveSalvar = true) {
     let lvl = ef.nivelAtual || 1;
     if (ef.buffs) {
       ef.buffs.forEach(b => {
-        let valEscalado = calcularEfeitoValorEscalado(b.val, ef.tipoEscala, ef.fatorEscala, lvl);
-        buffsAcumulados[b.alvoId] = (buffsAcumulados[b.alvoId] || 0) + valEscalado;
+        let valCalculado = ef.buffsEvoluem ? calcularEfeitoValorEscalado(b.val, ef.tipoEscala, ef.fatorEscala, lvl) : parseFloat(b.val) || 0;
+        buffsAcumulados[b.alvoId] = (buffsAcumulados[b.alvoId] || 0) + valCalculado;
       });
     }
   });
@@ -728,6 +732,8 @@ function recalcularTudo(deveSalvar = true) {
   document.getElementById('pe-max').value = 5 + agilidade + vigor + bonusClasse.pe + (buffsAcumulados['status-pe'] || 0);
   document.getElementById('ma-max').value = vigor + presenca + sorte + inteligencia + bonusClasse.ma + (buffsAcumulados['status-ma'] || 0);
   document.getElementById('eva-val').value = agilidade + bonusClasse.eva + (buffsAcumulados['status-eva'] || 0);
+  
+  // FIX CORRIGIDO: DEFESA NÃO ACUMULA MAIS INFINITAMENTE
   document.getElementById('def-val').value = Math.floor(vigor / 2) + bonusClasse.def + (buffsAcumulados['status-def'] || 0);
 
   // ATUALIZAR DEFESAS ESPECÍFICAS COM BUFFS
@@ -1043,10 +1049,11 @@ function salvarEfeitoGlobalMestre() {
   let turnosEvoluir = parseInt(document.getElementById('gm-effect-turnos-evoluir').value) || 0;
   let tipoEscala = document.getElementById('gm-effect-tipo-escala').value;
   let fatorEscala = parseFloat(document.getElementById('gm-effect-fator-escala').value) || 0;
+  let buffsEvoluem = document.getElementById('gm-effect-buffs-evoluem').value === 'sim';
 
   let id = Date.now();
   let novoEfeito = {
-    id, nome, cat, continuo, recurso, valorTurno, duracao, turnosEvoluir, tipoEscala, fatorEscala,
+    id, nome, cat, continuo, recurso, valorTurno, duracao, turnosEvoluir, tipoEscala, fatorEscala, buffsEvoluem,
     buffs: [...buffsTempGmEffect]
   };
 
@@ -1067,6 +1074,7 @@ function renderEfeitosGlobaisNoMestre() {
 
   Object.keys(efeitosGlobaisSalvos).forEach(id => {
     let e = efeitosGlobaisSalvos[id];
+    let listaBuffs = e.buffs ? e.buffs.map(b => `${b.alvoNome}: ${b.val > 0 ? '+' : ''}${b.val}`).join(', ') : 'Nenhum';
     container.innerHTML += `
       <li class="effect-item">
         <div class="effect-item-header">
@@ -1076,7 +1084,8 @@ function renderEfeitosGlobaisNoMestre() {
         <div class="effect-item-details">
           <span>Turno: ${e.continuo ? `${e.valorTurno > 0 ? '+' : ''}${e.valorTurno} ${e.recurso.toUpperCase()}` : 'Nenhum'}</span>
           <span>Duração: ${e.duracao > 0 ? `${e.duracao} Turnos` : 'Infinita'}</span>
-          <span>Escalabilidade: ${e.tipoEscala} (${e.fatorEscala})</span>
+          <span>Escala: ${e.tipoEscala} (${e.fatorEscala})</span>
+          <span>Buffs/Debuffs: ${listaBuffs} (${e.buffsEvoluem ? 'Evolutivos' : 'Estáticos'})</span>
         </div>
       </li>
     `;
@@ -1188,7 +1197,6 @@ function mestrePassarTurnoGeral() {
 }
 
 function processarPassagemDeTurnoLocal() {
-  // APLICA EFEITOS CONTÍNUOS DE ITENS EQUIPADOS
   equipamentos.forEach(item => {
     let mult = parseInt(item.qtd) || 1;
     if (item.efeitoTurno && item.efeitoTurno.recurso !== 'none' && item.efeitoTurno.valor !== 0) {
@@ -1196,7 +1204,6 @@ function processarPassagemDeTurnoLocal() {
     }
   });
 
-  // APLICA EFEITOS DE STATUS ATIVOS
   let novosEfeitos = [];
   efeitos.forEach(e => {
     let lvl = e.nivelAtual || 1;
@@ -1223,7 +1230,6 @@ function processarPassagemDeTurnoLocal() {
 }
 
 function processarTurnoFichaObjeto(f) {
-  // AUTOMAÇÃO OBJECT-BASED PARA O MESTRE
   let eqp = f.equipamentos || [];
   let efts = f.efeitos || [];
 
