@@ -1,4 +1,4 @@
-/* script.js - Sistema RPG de Fichas (Versão Corrigida) */
+/* script.js - Sistema RPG de Fichas */
 
 const SENHA_MESTRE = "2510";
 
@@ -18,6 +18,15 @@ document.addEventListener("DOMContentLoaded", () => {
     inicializarNavegacaoGeral();
     verificarSessaoSalva();
 });
+
+// Função exigida pelo onclick do seu HTML
+function setModoAcesso(modo) {
+    if (modo === 'mestre') {
+        entrarComoMestre();
+    } else if (modo === 'jogador') {
+        entrarComoJogador();
+    }
+}
 
 function inicializarAbas() {
     const tabButtons = document.querySelectorAll(".tab-btn");
@@ -125,7 +134,6 @@ function abrirPainelMestre() {
 function carregarPainelMestre() {
     const fichasRef = database.ref('fichas');
     
-    // Evita acumulação de listeners (Memory Leak fix)
     if (escutandoMestreRef) {
         fichasRef.off('value', escutandoMestreRef);
     }
@@ -210,7 +218,6 @@ function carregarFichaEConectar(id) {
 }
 
 function aplicarDadosFicha(data) {
-    // Atualização de campos genéricos
     const campos = ["nome", "classe", "raca", "nivel", "pvAtual", "pvMax", "peAtual", "peMax", "defesa", "deslocamento"];
     campos.forEach(campo => {
         const el = document.getElementById(`input-${campo}`);
@@ -219,7 +226,6 @@ function aplicarDadosFicha(data) {
         }
     });
 
-    // Reset seguro dos Slots de Magia
     if (data.slotsMagia && Array.isArray(data.slotsMagia)) {
         slotsAtuais = [...data.slotsMagia];
     } else {
@@ -227,7 +233,6 @@ function aplicarDadosFicha(data) {
     }
     renderSlotsMagia();
 
-    // Renderizar sub-elementos
     renderEfeitos(data.efeitos || []);
     renderInventario(data.inventario || []);
     renderAnotacoes(data.anotacoes || []);
@@ -397,7 +402,7 @@ function criarItem() {
 
     if (imgEl && imgEl.files && imgEl.files[0]) {
         const file = imgEl.files[0];
-        if (file.size > 500000) { // Limitador de tamanho ~500kb
+        if (file.size > 500000) {
             alert("Imagem muito grande! Selecione uma imagem de até 500KB.");
             return;
         }
