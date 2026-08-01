@@ -88,13 +88,14 @@
         <label>Evolui de Nível após Turnos? (0 = Não):
           <input type="number" id="gm-effect-turnos-evoluir" value="0">
         </label>
-        <label>Tipo de Escalabilidade por Nível:
-          <select id="gm-effect-tipo-escala">
-            <option value="multiplicativo">Multiplicação (Base * Nível)</option>
-            <option value="percentual">Porcentagem (Base * %)</option>
-            <option value="adicao">Adição (Base + Acréscimo)</option>
-          </select>
-        </label>
+<label>Tipo de Escalabilidade por Nível:
+  <select id="gm-effect-tipo-escala">
+    <option value="multiplicativo">Multiplicação (Base * Nível)</option>
+    <option value="percentual">Porcentagem (Base * %)</option>
+    <option value="adicao">Adição (Base + Acréscimo)</option>
+    <option value="exponencial">Exponencial (Base * Fator ^ (Nível - 1))</option>
+  </select>
+</label>
         <label>Fator de Escalamento (% ou Acréscimo):
           <input type="number" id="gm-effect-fator-escala" value="0" step="0.1" placeholder="Ex: 50 para 50% ou 2 para +2">
         </label>
