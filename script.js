@@ -1134,22 +1134,22 @@ function renderEfeitos() {
           <span><strong>[${e.cat}]</strong> ${e.nome}</span>
           <div class="effect-item-controls">
             <label>Nível:</label>
-            <input type="number" value="${lvl}" min="1" onchange="alterarNivelEfeitoInstancia(${e.idInstancia || e.id}, this.value)">
-            <button class="btn-danger" onclick="removerEfeito(${e.idInstancia || e.id})">Remover</button>
+            <input type="number" value="${lvl}" min="1" onchange="alterarNivelEfeito(${e.idInstancia}, this.value)">
+            <button class="btn-danger" onclick="removerEfeitoInstancia(${e.idInstancia})">Remover</button>
           </div>
         </div>
         <div class="effect-item-details">
           <span>${detalheTurno}</span>
           <span>${detalheDuracao}</span>
-          <span>Escala: ${e.tipoEscala || 'padrão'}</span>
+          <span>Escala (${e.tipoEscala}): Nv.${lvl}</span>
         </div>
       </li>
     `;
   });
 }
 
-function alterarNivelEfeitoInstancia(idInst, novoNivel) {
-  let ef = efeitos.find(e => (e.idInstancia || e.id) === idInst);
+function alterarNivelEfeito(idInstancia, novoNivel) {
+  let ef = efeitos.find(e => e.idInstancia === idInstancia);
   if (ef) {
     ef.nivelAtual = Math.max(1, parseInt(novoNivel) || 1);
     renderEfeitos();
@@ -1157,116 +1157,128 @@ function alterarNivelEfeitoInstancia(idInst, novoNivel) {
   }
 }
 
-function removerEfeito(idInst) {
-  efeitos = efeitos.filter(e => (e.idInstancia || e.id) !== idInst);
+function removerEfeitoInstancia(idInstancia) {
+  efeitos = efeitos.filter(e => e.idInstancia !== idInstancia);
   renderEfeitos();
   recalcularTudo();
 }
 
-// --- SISTEMA DE PASSAR TURNO ---
-function processarTurnoDeUmaFicha(dadosFicha) {
-  let pv = parseInt(dadosFicha.pvAtual) || 0;
-  let pe = parseInt(dadosFicha.peAtual) || 0;
-  let san = parseInt(dadosFicha.sanAtual) || 0;
-  let ma = parseInt(dadosFicha.maAtual) || 0;
-
-  let pvMax = parseInt(dadosFicha.pvMax) || 999;
-  let peMax = parseInt(dadosFicha.peMax) || 999;
-  let sanMax = parseInt(dadosFicha.sanMax) || 999;
-  let maMax = parseInt(dadosFicha.maMax) || 999;
-
-  let listaEfeitos = dadosFicha.efeitos || [];
-  let listaEquipamentos = dadosFicha.equipamentos || [];
-
-  // 1. APLICAR EFEITOS CONTÍNUOS DE ITENS EQUIPADOS
-  listaEquipamentos.forEach(item => {
-    if (item.efeitoTurno && item.efeitoTurno.recurso !== 'none') {
-      let val = (parseInt(item.efeitoTurno.valor) || 0) * (parseInt(item.qtd) || 1);
-      if (item.efeitoTurno.recurso === 'pv') pv = Math.min(pvMax, pv + val);
-      if (item.efeitoTurno.recurso === 'pe') pe = Math.min(peMax, pe + val);
-      if (item.efeitoTurno.recurso === 'san') san = Math.min(sanMax, san + val);
-      if (item.efeitoTurno.recurso === 'ma') ma = Math.min(maMax, ma + val);
-    }
-  });
-
-  // 2. APLICAR EFEITOS DE STATUS CONTÍNUOS E EVOLUÇÃO/EXPIRAÇÃO
-  let efeitosRestantes = [];
-
-  listaEfeitos.forEach(ef => {
-    ef.turnosPassados = (ef.turnosPassados || 0) + 1;
-    let lvl = ef.nivelAtual || 1;
-
-    if (ef.continuo && ef.recurso !== 'none') {
-      let valEscalado = calcularEfeitoValorEscalado(ef.valorTurno || 0, ef.tipoEscala, ef.fatorEscala, lvl);
-      if (ef.recurso === 'pv') pv = Math.min(pvMax, pv + valEscalado);
-      if (ef.recurso === 'pe') pe = Math.min(peMax, pe + valEscalado);
-      if (ef.recurso === 'san') san = Math.min(sanMax, san + valEscalado);
-      if (ef.recurso === 'ma') ma = Math.min(maMax, ma + valEscalado);
-    }
-
-    // EVOLUIR NÍVEL SE ATINGIR CONDIÇÃO
-    if (ef.turnosEvoluir > 0 && ef.turnosPassados % ef.turnosEvoluir === 0) {
-      ef.nivelAtual = lvl + 1;
-    }
-
-    // VERIFICAR SE O EFEITO EXPIROU
-    if (!(ef.duracao > 0 && ef.turnosPassados >= ef.duracao)) {
-      efeitosRestantes.push(ef);
-    }
-  });
-
-  return {
-    pvAtual: pv,
-    peAtual: pe,
-    sanAtual: san,
-    maAtual: ma,
-    efeitos: efeitosRestantes
-  };
-}
-
+// --- PASSAR TURNO & AUTOMAÇÕES ---
 function passarTurnoJogador() {
-  if (!idFichaAtual) return;
-  
-  // Pega estado atual
-  let estadoProvisorio = {
-    pvAtual: document.getElementById('pv-atual').value,
-    pvMax: document.getElementById('pv-max').value,
-    peAtual: document.getElementById('pe-atual').value,
-    peMax: document.getElementById('pe-max').value,
-    sanAtual: document.getElementById('san-atual').value,
-    sanMax: document.getElementById('san-max').value,
-    maAtual: document.getElementById('ma-atual').value,
-    maMax: document.getElementById('ma-max').value,
-    efeitos, equipamentos
-  };
-
-  let resultado = processarTurnoDeUmaFicha(estadoProvisorio);
-
-  document.getElementById('pv-atual').value = resultado.pvAtual;
-  document.getElementById('pe-atual').value = resultado.peAtual;
-  document.getElementById('san-atual').value = resultado.sanAtual;
-  document.getElementById('ma-atual').value = resultado.maAtual;
-  efeitos = resultado.efeitos;
-
-  renderEfeitos();
+  processarPassagemDeTurnoLocal();
   salvarDados();
-  alert("Turno avançado com sucesso!");
+  alert("Seu turno foi concluído e os efeitos/recursos foram atualizados!");
 }
 
 function mestrePassarTurnoGeral() {
-  if (!confirm("Deseja passar o turno de TODOS os jogadores no banco de dados?")) return;
+  if (!confirm("Deseja passar o turno de TODOS os jogadores salvos no banco?")) return;
 
   database.ref('fichas').once('value', (snapshot) => {
-    let fichas = snapshot.val();
-    if (!fichas) return;
+    const fichas = snapshot.val();
+    if (!fichas) return alert("Nenhuma ficha encontrada.");
 
     Object.keys(fichas).forEach(id => {
-      let alteracoes = processarTurnoDeUmaFicha(fichas[id]);
-      database.ref('fichas/' + id).update(alteracoes);
+      let f = fichas[id];
+      f = processarTurnoFichaObjeto(f);
+      database.ref('fichas/' + id).update(f);
     });
 
-    alert("Turno passado para todos os jogadores no banco de dados!");
+    alert("Turno de todas as fichas foi processado com sucesso!");
   });
+}
+
+function processarPassagemDeTurnoLocal() {
+  // APLICA EFEITOS CONTÍNUOS DE ITENS EQUIPADOS
+  equipamentos.forEach(item => {
+    let mult = parseInt(item.qtd) || 1;
+    if (item.efeitoTurno && item.efeitoTurno.recurso !== 'none' && item.efeitoTurno.valor !== 0) {
+      aplicarRecursoNoCampo(item.efeitoTurno.recurso, item.efeitoTurno.valor * mult);
+    }
+  });
+
+  // APLICA EFEITOS DE STATUS ATIVOS
+  let novosEfeitos = [];
+  efeitos.forEach(e => {
+    let lvl = e.nivelAtual || 1;
+    let vTurnoEscalado = calcularEfeitoValorEscalado(e.valorTurno || 0, e.tipoEscala, e.fatorEscala, lvl);
+
+    if (e.continuo && e.recurso !== 'none' && vTurnoEscalado !== 0) {
+      aplicarRecursoNoCampo(e.recurso, vTurnoEscalado);
+    }
+
+    e.turnosPassados = (e.turnosPassados || 0) + 1;
+
+    if (e.turnosEvoluir > 0 && e.turnosPassados % e.turnosEvoluir === 0) {
+      e.nivelAtual = lvl + 1;
+    }
+
+    if (e.duracao === 0 || e.turnosPassados < e.duracao) {
+      novosEfeitos.push(e);
+    }
+  });
+
+  efeitos = novosEfeitos;
+  renderEfeitos();
+  recalcularTudo();
+}
+
+function processarTurnoFichaObjeto(f) {
+  // AUTOMAÇÃO OBJECT-BASED PARA O MESTRE
+  let eqp = f.equipamentos || [];
+  let efts = f.efeitos || [];
+
+  eqp.forEach(item => {
+    let mult = parseInt(item.qtd) || 1;
+    if (item.efeitoTurno && item.efeitoTurno.recurso !== 'none' && item.efeitoTurno.valor !== 0) {
+      modificarRecursoObjeto(f, item.efeitoTurno.recurso, item.efeitoTurno.valor * mult);
+    }
+  });
+
+  let novosEfts = [];
+  efts.forEach(e => {
+    let lvl = e.nivelAtual || 1;
+    let vTurnoEscalado = calcularEfeitoValorEscalado(e.valorTurno || 0, e.tipoEscala, e.fatorEscala, lvl);
+
+    if (e.continuo && e.recurso !== 'none' && vTurnoEscalado !== 0) {
+      modificarRecursoObjeto(f, e.recurso, vTurnoEscalado);
+    }
+
+    e.turnosPassados = (e.turnosPassados || 0) + 1;
+
+    if (e.turnosEvoluir > 0 && e.turnosPassados % e.turnosEvoluir === 0) {
+      e.nivelAtual = lvl + 1;
+    }
+
+    if (e.duracao === 0 || e.turnosPassados < e.duracao) {
+      novosEfts.push(e);
+    }
+  });
+
+  f.efeitos = novosEfts;
+  return f;
+}
+
+function aplicarRecursoNoCampo(recurso, delta) {
+  let idCampo = `${recurso}-atual`;
+  let idMax = `${recurso}-max`;
+  let elAtual = document.getElementById(idCampo);
+  let elMax = document.getElementById(idMax);
+
+  if (elAtual) {
+    let valAtual = parseInt(elAtual.value) || 0;
+    let valMax = elMax ? (parseInt(elMax.value) || 9999) : 9999;
+    let novoVal = Math.min(valMax, Math.max(0, valAtual + delta));
+    elAtual.value = novoVal;
+  }
+}
+
+function modificarRecursoObjeto(f, recurso, delta) {
+  let chaveAtual = `${recurso}Atual`;
+  let chaveMax = `${recurso}Max`;
+
+  let valAtual = parseInt(f[chaveAtual]) || 0;
+  let valMax = parseInt(f[chaveMax]) || 9999;
+  f[chaveAtual] = Math.min(valMax, Math.max(0, valAtual + delta));
 }
 
 // --- BLOCOS DE ANOTAÇÕES ---
@@ -1280,24 +1292,28 @@ function renderBlocosAnotacoes() {
   const container = document.getElementById('container-anotacoes');
   if (!container) return;
   container.innerHTML = '';
-  blocosAnotacoes.forEach(b => {
+
+  blocosAnotacoes.forEach((b, idx) => {
     container.innerHTML += `
       <div class="bloco-card">
-        <input type="text" value="${b.titulo}" onchange="atualizarBloco(${b.id}, 'titulo', this.value)">
-        <textarea rows="8" onchange="atualizarBloco(${b.id}, 'texto', this.value)" placeholder="Digite aqui...">${b.texto}</textarea>
-        <button class="btn-danger" style="align-self: flex-end;" onclick="removerBloco(${b.id})">Excluir Bloco</button>
+        <input type="text" value="${b.titulo}" onchange="atualizarTituloAnotacao(${idx}, this.value)">
+        <textarea rows="6" onchange="atualizarTextoAnotacao(${idx}, this.value)">${b.texto}</textarea>
+        <button class="btn-danger" onclick="removerBlocoAnotacao(${idx})">Excluir Bloco</button>
       </div>
     `;
   });
 }
 
-function atualizarBloco(id, campo, valor) {
-  let bloco = blocosAnotacoes.find(b => b.id === id);
-  if (bloco) { bloco[campo] = valor; salvarDados(); }
+function atualizarTituloAnotacao(idx, novoTitulo) {
+  if (blocosAnotacoes[idx]) { blocosAnotacoes[idx].titulo = novoTitulo; salvarDados(); }
 }
 
-function removerBloco(id) {
-  blocosAnotacoes = blocosAnotacoes.filter(b => b.id !== id);
+function atualizarTextoAnotacao(idx, novoTexto) {
+  if (blocosAnotacoes[idx]) { blocosAnotacoes[idx].texto = novoTexto; salvarDados(); }
+}
+
+function removerBlocoAnotacao(idx) {
+  blocosAnotacoes.splice(idx, 1);
   renderBlocosAnotacoes();
   salvarDados();
 }
