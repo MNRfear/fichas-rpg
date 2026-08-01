@@ -97,7 +97,6 @@ window.onload = () => {
   });
 };
 
-// --- SINCRONIZAÇÃO DE EFEITOS GLOBAIS (BANCO DE DADOS) ---
 function escutarEfeitosGlobais() {
   database.ref('efeitosGlobais').on('value', (snapshot) => {
     efeitosGlobaisSalvos = snapshot.val() || {};
@@ -106,7 +105,6 @@ function escutarEfeitosGlobais() {
   });
 }
 
-// --- NAVEGAÇÃO DE MODO E TELAS ---
 function setModoAcesso(modo) {
   document.getElementById('btn-mode-player').classList.toggle('active', modo === 'player');
   document.getElementById('btn-mode-gm').classList.toggle('active', modo === 'gm');
@@ -126,7 +124,6 @@ function voltarParaSelecao() {
   mostrarTela('screen-select');
 }
 
-// --- ACESSO DO JOGADOR ---
 function entrarComoJogador() {
   const inputID = document.getElementById('input-player-id').value.trim().toLowerCase();
   if (!inputID) return alert("Por favor, digite o nome/ID do seu personagem!");
@@ -140,7 +137,6 @@ function entrarComoJogador() {
   mostrarTela('screen-sheet');
 }
 
-// --- ACESSO DO MESTRE ---
 function entrarComoMestre() {
   const senhaInput = document.getElementById('input-gm-pass').value;
   if (senhaInput !== SENHA_MESTRE) return alert("Senha do Mestre incorreta!");
@@ -195,7 +191,6 @@ function mestreAbrirFicha(idFicha) {
   mostrarTela('screen-sheet');
 }
 
-// --- SINCRONIZAÇÃO EM TEMPO REAL COM FIREBASE ---
 function carregarFichaEConectar() {
   if (escutandoFirebaseRef) escutandoFirebaseRef.off();
 
@@ -251,9 +246,6 @@ function aplicarDadosFicha(data) {
   atualizarCampoSeInativo('attr-sorte', data.attrSorte || 10);
 
   defesasEspecificas = data.defesasEspecificas || { perfuracao:0, queimadura:0, corte:0, impacto:0, balistico:0, eletricidade:0, fogo:0, frio:0, acido:0, veneno:0, magico:0 };
-  Object.keys(defesasEspecificas).forEach(k => {
-    atualizarCampoSeInativo(`def-${k}`, defesasEspecificas[k]);
-  });
 
   atualizarCampoSeInativo('hab-unicas', data.habUnicas || '');
   atualizarCampoSeInativo('hab-lendarias', data.habLendarias || '');
@@ -287,22 +279,13 @@ function aplicarDadosFicha(data) {
   recalcularTudo(false);
 }
 
+function atualizarDefesaBase(tipo, valor) {
+  defesasEspecificas[tipo] = parseInt(valor) || 0;
+  salvarDados();
+}
+
 function salvarDados() {
   if (!idFichaAtual) return;
-
-  const defEspecificasSalvar = {
-    perfuracao: parseInt(document.getElementById('def-perfuracao')?.value) || 0,
-    queimadura: parseInt(document.getElementById('def-queimadura')?.value) || 0,
-    corte: parseInt(document.getElementById('def-corte')?.value) || 0,
-    impacto: parseInt(document.getElementById('def-impacto')?.value) || 0,
-    balistico: parseInt(document.getElementById('def-balistico')?.value) || 0,
-    eletricidade: parseInt(document.getElementById('def-eletricidade')?.value) || 0,
-    fogo: parseInt(document.getElementById('def-fogo')?.value) || 0,
-    frio: parseInt(document.getElementById('def-frio')?.value) || 0,
-    acido: parseInt(document.getElementById('def-acido')?.value) || 0,
-    veneno: parseInt(document.getElementById('def-veneno')?.value) || 0,
-    magico: parseInt(document.getElementById('def-magico')?.value) || 0
-  };
 
   const estadoFicha = {
     nome: document.getElementById('nome').value,
@@ -337,7 +320,7 @@ function salvarDados() {
     attrCarisma: document.getElementById('attr-carisma').value,
     attrSorte: document.getElementById('attr-sorte').value,
 
-    defesasEspecificas: defEspecificasSalvar,
+    defesasEspecificas: defesasEspecificas,
 
     habUnicas: document.getElementById('hab-unicas').value,
     habLendarias: document.getElementById('hab-lendarias').value,
@@ -364,7 +347,6 @@ function salvarDados() {
   database.ref('fichas/' + idFichaAtual).update(estadoFicha);
 }
 
-// --- CONTROLE DE DEFESA ESPECÍFICA POPUP ---
 function toggleDefesaTooltip(e) {
   e.stopPropagation();
   const box = document.getElementById('defensa-tooltip-box');
@@ -378,7 +360,6 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// --- CONTROLE DE ABAS ---
 function openTab(tabName, evt) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -402,7 +383,6 @@ function formatarNEX(input) {
   recalcularTudo();
 }
 
-// --- MODAL DE XP ---
 function abrirModalXP() {
   document.getElementById('modal-xp').classList.add('active');
   document.getElementById('xp-input-val').value = '0';
@@ -437,7 +417,6 @@ function confirmarGanhoXP() {
   recalcularTudo();
 }
 
-// --- BUFFS DE ITENS & EFEITOS ---
 function popularOpcoesBuff() {
   const selects = [document.getElementById('buff-alvo'), document.getElementById('gm-effect-buff-alvo')];
   const htmlOptions = `
@@ -503,7 +482,6 @@ function removerBuffTemp(idx) {
   renderBuffsTemp();
 }
 
-// --- PERÍCIAS ---
 function renderPericias() {
   const container = document.getElementById('grid-pericias');
   if (!container) return;
@@ -527,7 +505,6 @@ function alterarPontosPericia(pericia, valor) {
   recalcularTudo();
 }
 
-// --- LÓGICA DE SLOTS DE MAGIA ---
 function calcularSlotsMaximos() {
   let maximos = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 
@@ -632,7 +609,7 @@ function recalcularSlotsMagia() {
   salvarDados();
 }
 
-// --- CÁLCULO DE VALOR ESCALADO DE EFEITOS ---
+// --- CÁLCULO DE VALOR ESCALADO DE EFEITOS (INCLUI SUPORTE A EXPONENCIAL) ---
 function calcularEfeitoValorEscalado(valorBase, tipoEscala, fator, nivel) {
   let vBase = parseFloat(valorBase) || 0;
   let lvl = Math.max(1, parseInt(nivel) || 1);
@@ -644,6 +621,8 @@ function calcularEfeitoValorEscalado(valorBase, tipoEscala, fator, nivel) {
     return vBase * (1 + ((fat / 100) * (lvl - 1)));
   } else if (tipoEscala === 'adicao') {
     return vBase + (fat * (lvl - 1));
+  } else if (tipoEscala === 'exponencial') {
+    return vBase * Math.pow(fat || 1.5, lvl - 1);
   }
   return vBase;
 }
@@ -675,7 +654,6 @@ function recalcularTudo(deveSalvar = true) {
 
   let buffsAcumulados = {};
 
-  // ACUMULAR BUFFS DOS EQUIPAMENTOS
   equipamentos.forEach(item => {
     let mult = parseInt(item.qtd) || 1;
     if (item.buffs) {
@@ -685,7 +663,6 @@ function recalcularTudo(deveSalvar = true) {
     }
   });
 
-  // ACUMULAR BUFFS DOS EFEITOS DE STATUS ATIVOS
   efeitos.forEach(ef => {
     let lvl = ef.nivelAtual || 1;
     if (ef.buffs) {
@@ -730,14 +707,15 @@ function recalcularTudo(deveSalvar = true) {
   document.getElementById('eva-val').value = agilidade + bonusClasse.eva + (buffsAcumulados['status-eva'] || 0);
   document.getElementById('def-val').value = Math.floor(vigor / 2) + bonusClasse.def + (buffsAcumulados['status-def'] || 0);
 
-  // ATUALIZAR DEFESAS ESPECÍFICAS COM BUFFS
+  // EXIBE AS DEFESAS ESPECÍFICAS CALCULADAS SEM SUBSCREVER A BASE (CORREÇÃO DO BUG)
   const defsLista = ['perfuracao','queimadura','corte','impacto','balistico','eletricidade','fogo','frio','acido','veneno','magico'];
   defsLista.forEach(d => {
     let el = document.getElementById(`def-${d}`);
-    if (el && document.activeElement !== el) {
+    if (el) {
       let baseVal = defesasEspecificas[d] || 0;
       let buffVal = buffsAcumulados[`def-${d}`] || 0;
       el.value = baseVal + buffVal;
+      el.onchange = (e) => atualizarDefesaBase(d, e.target.value);
     }
   });
 
@@ -853,7 +831,6 @@ function recalcularTudo(deveSalvar = true) {
   if (deveSalvar) salvarDados();
 }
 
-// --- GERENCIAMENTO DE ITENS ---
 function criarItem() {
   let nome = document.getElementById('item-nome').value;
   let qtd = parseInt(document.getElementById('item-qtd').value) || 1;
@@ -1007,7 +984,6 @@ function removerItem(id, local) {
   recalcularTudo();
 }
 
-// --- EFEITOS DE STATUS (PAINEL DO MESTRE & BANCO DE DADOS) ---
 function adicionarBuffEfeitoGmMtemp() {
   const select = document.getElementById('gm-effect-buff-alvo');
   const alvoId = select.value;
@@ -1036,7 +1012,6 @@ function salvarEfeitoGlobalMestre() {
   if (!nome) return alert("Digite o nome do efeito!");
 
   let cat = document.getElementById('gm-effect-cat').value;
-  let continuo = document.getElementById('gm-effect-is-continuous').value === 'sim';
   let recurso = document.getElementById('gm-effect-recurso').value;
   let valorTurno = parseInt(document.getElementById('gm-effect-valor-turno').value) || 0;
   let duracao = parseInt(document.getElementById('gm-effect-duracao').value) || 0;
@@ -1046,13 +1021,13 @@ function salvarEfeitoGlobalMestre() {
 
   let id = Date.now();
   let novoEfeito = {
-    id, nome, cat, continuo, recurso, valorTurno, duracao, turnosEvoluir, tipoEscala, fatorEscala,
+    id, nome, cat, recurso, valorTurno, duracao, turnosEvoluir, tipoEscala, fatorEscala,
     buffs: [...buffsTempGmEffect]
   };
 
   database.ref('efeitosGlobais/' + id).set(novoEfeito, (err) => {
     if (!err) {
-      alert("Efeito de status salvo com sucesso no Banco de Dados!");
+      alert("Efeito de status salvo com sucesso!");
       document.getElementById('gm-effect-nome').value = '';
       buffsTempGmEffect = [];
       renderBuffsGmEffectTemp();
@@ -1074,9 +1049,9 @@ function renderEfeitosGlobaisNoMestre() {
           <button class="btn-danger" onclick="excluirEfeitoGlobalMestre('${e.id}')">Excluir do Banco</button>
         </div>
         <div class="effect-item-details">
-          <span>Turno: ${e.continuo ? `${e.valorTurno > 0 ? '+' : ''}${e.valorTurno} ${e.recurso.toUpperCase()}` : 'Nenhum'}</span>
+          <span>Efeito por Turno: ${e.valorTurno !== 0 ? `${e.valorTurno > 0 ? '+' : ''}${e.valorTurno} ${e.recurso.toUpperCase()}` : 'Nenhum'}</span>
           <span>Duração: ${e.duracao > 0 ? `${e.duracao} Turnos` : 'Infinita'}</span>
-          <span>Escalabilidade: ${e.tipoEscala} (${e.fatorEscala})</span>
+          <span>Escalamento: ${e.tipoEscala} (${e.fatorEscala})</span>
         </div>
       </li>
     `;
@@ -1121,155 +1096,110 @@ function renderEfeitos() {
   if (!container) return;
   container.innerHTML = '';
 
-  efeitos.forEach(e => {
-    let lvl = e.nivelAtual || 1;
-    let vTurnoEscalado = calcularEfeitoValorEscalado(e.valorTurno || 0, e.tipoEscala, e.fatorEscala, lvl);
-
-    let detalheTurno = e.continuo && e.recurso !== 'none' ? `${vTurnoEscalado > 0 ? '+' : ''}${vTurnoEscalado} ${e.recurso.toUpperCase()}/turno` : 'Sem dano contínuo';
-    let detalheDuracao = e.duracao > 0 ? `Turnos: ${e.turnosPassados || 0}/${e.duracao}` : 'Duração Infinita';
-
+  efeitos.forEach((e, idx) => {
+    let tagsBuffs = e.buffs ? e.buffs.map(b => `<span class="buff-tag">${b.alvoNome}: ${b.val > 0 ? '+' : ''}${b.val}</span>`).join('') : '';
     container.innerHTML += `
       <li class="effect-item">
         <div class="effect-item-header">
-          <span><strong>[${e.cat}]</strong> ${e.nome}</span>
-          <div class="effect-item-controls">
-            <label>Nível:</label>
-            <input type="number" value="${lvl}" min="1" onchange="alterarNivelEfeitoInstancia(${e.idInstancia || e.id}, this.value)">
-            <button class="btn-danger" onclick="removerEfeito(${e.idInstancia || e.id})">Remover</button>
-          </div>
+          <span><strong>[${e.cat}]</strong> ${e.nome} (Nv. ${e.nivelAtual || 1})</span>
+          <button class="btn-danger" onclick="removerEfeitoFicha(${idx})">Remover</button>
         </div>
+        <div class="buffs-tags">${tagsBuffs}</div>
         <div class="effect-item-details">
-          <span>${detalheTurno}</span>
-          <span>${detalheDuracao}</span>
-          <span>Escala: ${e.tipoEscala || 'padrão'}</span>
+          <span>Restante: ${e.duracao > 0 ? `${e.duracao - e.turnosPassados} turnos` : 'Infinito'}</span>
+          <span>Efeito de Turno: ${e.valorTurno ? `${e.valorTurno > 0 ? '+' : ''}${e.valorTurno} ${e.recurso.toUpperCase()}` : 'Nenhum'}</span>
         </div>
       </li>
     `;
   });
 }
 
-function alterarNivelEfeitoInstancia(idInst, novoNivel) {
-  let ef = efeitos.find(e => (e.idInstancia || e.id) === idInst);
-  if (ef) {
-    ef.nivelAtual = Math.max(1, parseInt(novoNivel) || 1);
-    renderEfeitos();
-    recalcularTudo();
-  }
-}
-
-function removerEfeito(idInst) {
-  efeitos = efeitos.filter(e => (e.idInstancia || e.id) !== idInst);
+function removerEfeitoFicha(idx) {
+  efeitos.splice(idx, 1);
   renderEfeitos();
   recalcularTudo();
 }
 
-// --- SISTEMA DE PASSAR TURNO ---
-function processarTurnoDeUmaFicha(dadosFicha) {
-  let pv = parseInt(dadosFicha.pvAtual) || 0;
-  let pe = parseInt(dadosFicha.peAtual) || 0;
-  let san = parseInt(dadosFicha.sanAtual) || 0;
-  let ma = parseInt(dadosFicha.maAtual) || 0;
-
-  let pvMax = parseInt(dadosFicha.pvMax) || 999;
-  let peMax = parseInt(dadosFicha.peMax) || 999;
-  let sanMax = parseInt(dadosFicha.sanMax) || 999;
-  let maMax = parseInt(dadosFicha.maMax) || 999;
-
-  let listaEfeitos = dadosFicha.efeitos || [];
-  let listaEquipamentos = dadosFicha.equipamentos || [];
-
-  // 1. APLICAR EFEITOS CONTÍNUOS DE ITENS EQUIPADOS
-  listaEquipamentos.forEach(item => {
-    if (item.efeitoTurno && item.efeitoTurno.recurso !== 'none') {
-      let val = (parseInt(item.efeitoTurno.valor) || 0) * (parseInt(item.qtd) || 1);
-      if (item.efeitoTurno.recurso === 'pv') pv = Math.min(pvMax, pv + val);
-      if (item.efeitoTurno.recurso === 'pe') pe = Math.min(peMax, pe + val);
-      if (item.efeitoTurno.recurso === 'san') san = Math.min(sanMax, san + val);
-      if (item.efeitoTurno.recurso === 'ma') ma = Math.min(maMax, ma + val);
-    }
-  });
-
-  // 2. APLICAR EFEITOS DE STATUS CONTÍNUOS E EVOLUÇÃO/EXPIRAÇÃO
-  let efeitosRestantes = [];
-
-  listaEfeitos.forEach(ef => {
-    ef.turnosPassados = (ef.turnosPassados || 0) + 1;
-    let lvl = ef.nivelAtual || 1;
-
-    if (ef.continuo && ef.recurso !== 'none') {
-      let valEscalado = calcularEfeitoValorEscalado(ef.valorTurno || 0, ef.tipoEscala, ef.fatorEscala, lvl);
-      if (ef.recurso === 'pv') pv = Math.min(pvMax, pv + valEscalado);
-      if (ef.recurso === 'pe') pe = Math.min(peMax, pe + valEscalado);
-      if (ef.recurso === 'san') san = Math.min(sanMax, san + valEscalado);
-      if (ef.recurso === 'ma') ma = Math.min(maMax, ma + valEscalado);
-    }
-
-    // EVOLUIR NÍVEL SE ATINGIR CONDIÇÃO
-    if (ef.turnosEvoluir > 0 && ef.turnosPassados % ef.turnosEvoluir === 0) {
-      ef.nivelAtual = lvl + 1;
-    }
-
-    // VERIFICAR SE O EFEITO EXPIROU
-    if (!(ef.duracao > 0 && ef.turnosPassados >= ef.duracao)) {
-      efeitosRestantes.push(ef);
-    }
-  });
-
-  return {
-    pvAtual: pv,
-    peAtual: pe,
-    sanAtual: san,
-    maAtual: ma,
-    efeitos: efeitosRestantes
-  };
-}
-
+// --- PASSAGEM DE TURNO CORRIGIDA ---
 function passarTurnoJogador() {
-  if (!idFichaAtual) return;
-  
-  // Pega estado atual
-  let estadoProvisorio = {
-    pvAtual: document.getElementById('pv-atual').value,
-    pvMax: document.getElementById('pv-max').value,
-    peAtual: document.getElementById('pe-atual').value,
-    peMax: document.getElementById('pe-max').value,
-    sanAtual: document.getElementById('san-atual').value,
-    sanMax: document.getElementById('san-max').value,
-    maAtual: document.getElementById('ma-atual').value,
-    maMax: document.getElementById('ma-max').value,
-    efeitos, equipamentos
-  };
-
-  let resultado = processarTurnoDeUmaFicha(estadoProvisorio);
-
-  document.getElementById('pv-atual').value = resultado.pvAtual;
-  document.getElementById('pe-atual').value = resultado.peAtual;
-  document.getElementById('san-atual').value = resultado.sanAtual;
-  document.getElementById('ma-atual').value = resultado.maAtual;
-  efeitos = resultado.efeitos;
-
-  renderEfeitos();
-  salvarDados();
-  alert("Turno avançado com sucesso!");
+  processarTurnoIndividual();
+  recalcularTudo();
+  alert("Seu turno foi concluído!");
 }
 
 function mestrePassarTurnoGeral() {
-  if (!confirm("Deseja passar o turno de TODOS os jogadores no banco de dados?")) return;
-
   database.ref('fichas').once('value', (snapshot) => {
-    let fichas = snapshot.val();
+    const fichas = snapshot.val();
     if (!fichas) return;
 
     Object.keys(fichas).forEach(id => {
-      let alteracoes = processarTurnoDeUmaFicha(fichas[id]);
-      database.ref('fichas/' + id).update(alteracoes);
-    });
+      let f = fichas[id];
+      if (f.efeitos && Array.isArray(f.efeitos)) {
+        f.efeitos = f.efeitos.filter(e => {
+          e.turnosPassados = (e.turnosPassados || 0) + 1;
+          
+          if (e.turnosEvoluir > 0 && e.turnosPassados % e.turnosEvoluir === 0) {
+            e.nivelAtual = (e.nivelAtual || 1) + 1;
+          }
 
-    alert("Turno passado para todos os jogadores no banco de dados!");
+          if (e.recurso && e.recurso !== 'none' && e.valorTurno) {
+            let campoId = `${e.recurso.toLowerCase()}-atual`;
+            let valAtual = parseInt(f[campoId]) || 0;
+            f[campoId] = valAtual + e.valorTurno;
+          }
+
+          return e.duracao === 0 || e.turnosPassados < e.duracao;
+        });
+      }
+
+      // Aplica efeitos de itens equipados por turno
+      if (f.equipamentos && Array.isArray(f.equipamentos)) {
+        f.equipamentos.forEach(item => {
+          if (item.efeitoTurno && item.efeitoTurno.recurso !== 'none' && item.efeitoTurno.valor) {
+            let campoId = `${item.efeitoTurno.recurso.toLowerCase()}-atual`;
+            let valAtual = parseInt(f[campoId]) || 0;
+            f[campoId] = valAtual + item.efeitoTurno.valor;
+          }
+        });
+      }
+
+      database.ref('fichas/' + id).update(f);
+    });
   });
 }
 
-// --- BLOCOS DE ANOTAÇÕES ---
+function processarTurnoIndividual() {
+  efeitos = efeitos.filter(e => {
+    e.turnosPassados = (e.turnosPassados || 0) + 1;
+
+    if (e.turnosEvoluir > 0 && e.turnosPassados % e.turnosEvoluir === 0) {
+      e.nivelAtual = (e.nivelAtual || 1) + 1;
+    }
+
+    if (e.recurso && e.recurso !== 'none' && e.valorTurno) {
+      let campoEl = document.getElementById(`${e.recurso.toLowerCase()}-atual`);
+      if (campoEl) {
+        let valAtual = parseInt(campoEl.value) || 0;
+        campoEl.value = valAtual + e.valorTurno;
+      }
+    }
+
+    return e.duracao === 0 || e.turnosPassados < e.duracao;
+  });
+
+  equipamentos.forEach(item => {
+    if (item.efeitoTurno && item.efeitoTurno.recurso !== 'none' && item.efeitoTurno.valor) {
+      let campoEl = document.getElementById(`${item.efeitoTurno.recurso.toLowerCase()}-atual`);
+      if (campoEl) {
+        let valAtual = parseInt(campoEl.value) || 0;
+        campoEl.value = valAtual + item.efeitoTurno.valor;
+      }
+    }
+  });
+
+  renderEfeitos();
+}
+
 function criarBlocoAnotacao() {
   blocosAnotacoes.push({ id: Date.now(), titulo: "Nova Anotação", texto: "" });
   renderBlocosAnotacoes();
@@ -1280,24 +1210,27 @@ function renderBlocosAnotacoes() {
   const container = document.getElementById('container-anotacoes');
   if (!container) return;
   container.innerHTML = '';
-  blocosAnotacoes.forEach(b => {
+
+  blocosAnotacoes.forEach((b, idx) => {
     container.innerHTML += `
       <div class="bloco-card">
-        <input type="text" value="${b.titulo}" onchange="atualizarBloco(${b.id}, 'titulo', this.value)">
-        <textarea rows="8" onchange="atualizarBloco(${b.id}, 'texto', this.value)" placeholder="Digite aqui...">${b.texto}</textarea>
-        <button class="btn-danger" style="align-self: flex-end;" onclick="removerBloco(${b.id})">Excluir Bloco</button>
+        <input type="text" value="${b.titulo}" onchange="atualizarBloco(${idx}, 'titulo', this.value)">
+        <textarea rows="6" onchange="atualizarBloco(${idx}, 'texto', this.value)">${b.texto}</textarea>
+        <button class="btn-danger" onclick="removerBloco(${idx})">Deletar Bloco</button>
       </div>
     `;
   });
 }
 
-function atualizarBloco(id, campo, valor) {
-  let bloco = blocosAnotacoes.find(b => b.id === id);
-  if (bloco) { bloco[campo] = valor; salvarDados(); }
+function atualizarBloco(idx, campo, valor) {
+  if (blocosAnotacoes[idx]) {
+    blocosAnotacoes[idx][campo] = valor;
+    salvarDados();
+  }
 }
 
-function removerBloco(id) {
-  blocosAnotacoes = blocosAnotacoes.filter(b => b.id !== id);
+function removerBloco(idx) {
+  blocosAnotacoes.splice(idx, 1);
   renderBlocosAnotacoes();
   salvarDados();
 }
