@@ -35,6 +35,7 @@ let efeitos = [];
 let blocosAnotacoes = [];
 let buffsTempItem = [];
 let buffsTempGmEffect = [];
+let efeitosTurnoTempGm = []; // Adicionado para suportar múltiplos efeitos de turno
 let efeitosGlobaisSalvos = {};
 let defesasEspecificas = { perfuracao:0, queimadura:0, corte:0, impacto:0, balistico:0, eletricidade:0, fogo:0, frio:0, acido:0, veneno:0, magico:0 };
 let expAtual = 0;
@@ -707,7 +708,6 @@ function recalcularTudo(deveSalvar = true) {
   document.getElementById('eva-val').value = agilidade + bonusClasse.eva + (buffsAcumulados['status-eva'] || 0);
   document.getElementById('def-val').value = Math.floor(vigor / 2) + bonusClasse.def + (buffsAcumulados['status-def'] || 0);
 
-  // EXIBE AS DEFESAS ESPECÍFICAS CALCULADAS SEM SUBSCREVER A BASE (CORREÇÃO DO BUG)
   const defsLista = ['perfuracao','queimadura','corte','impacto','balistico','eletricidade','fogo','frio','acido','veneno','magico'];
   defsLista.forEach(d => {
     let el = document.getElementById(`def-${d}`);
@@ -984,6 +984,32 @@ function removerItem(id, local) {
   recalcularTudo();
 }
 
+// --- CONTROLES DE CRIAÇÃO DE EFEITOS PELO MESTRE (NOVO MÓDULO INTEGRADO) ---
+function adicionarEfeitoTurnoTemp() {
+  const recurso = document.getElementById('gm-effect-recurso-alvo').value;
+  const valor = parseInt(document.getElementById('gm-effect-recurso-valor').value) || 0;
+  if (valor === 0) return;
+  
+  efeitosTurnoTempGm.push({ recurso, valor });
+  renderEfeitosTurnoTemp();
+}
+
+function renderEfeitosTurnoTemp() {
+  const container = document.getElementById('lista-gm-effect-turnos-temp');
+  if (!container) return;
+  container.innerHTML = efeitosTurnoTempGm.map((e, idx) => `
+    <span class="buff-tag" style="background:#00d2ff; color:#000;">
+      ${e.valor > 0 ? '+' : ''}${e.valor} ${e.recurso.toUpperCase()}/turno 
+      <span onclick="removerEfeitoTurnoTemp(${idx})" style="cursor:pointer; font-weight:bold; margin-left:4px;">×</span>
+    </span>
+  `).join('');
+}
+
+function removerEfeitoTurnoTemp(idx) {
+  efeitosTurnoTempGm.splice(idx, 1);
+  renderEfeitosTurnoTemp();
+}
+
 function adicionarBuffEfeitoGmMtemp() {
   const select = document.getElementById('gm-effect-buff-alvo');
   const alvoId = select.value;
@@ -1012,8 +1038,6 @@ function salvarEfeitoGlobalMestre() {
   if (!nome) return alert("Digite o nome do efeito!");
 
   let cat = document.getElementById('gm-effect-cat').value;
-  let recurso = document.getElementById('gm-effect-recurso').value;
-  let valorTurno = parseInt(document.getElementById('gm-effect-valor-turno').value) || 0;
   let duracao = parseInt(document.getElementById('gm-effect-duracao').value) || 0;
   let turnosEvoluir = parseInt(document.getElementById('gm-effect-turnos-evoluir').value) || 0;
   let tipoEscala = document.getElementById('gm-effect-tipo-escala').value;
@@ -1021,7 +1045,8 @@ function salvarEfeitoGlobalMestre() {
 
   let id = Date.now();
   let novoEfeito = {
-    id, nome, cat, recurso, valorTurno, duracao, turnosEvoluir, tipoEscala, fatorEscala,
+    id, nome, cat, duracao, turnosEvoluir, tipoEscala, fatorEscala,
+    efeitosTurno: [...efeitosTurnoTempGm],
     buffs: [...buffsTempGmEffect]
   };
 
@@ -1030,7 +1055,9 @@ function salvarEfeitoGlobalMestre() {
       alert("Efeito de status salvo com sucesso!");
       document.getElementById('gm-effect-nome').value = '';
       buffsTempGmEffect = [];
+      efeitosTurnoTempGm = [];
       renderBuffsGmEffectTemp();
+      renderEfeitosTurnoTemp();
     }
   });
 }
@@ -1049,7 +1076,6 @@ function renderEfeitosGlobaisNoMestre() {
           <button class="btn-danger" onclick="excluirEfeitoGlobalMestre('${e.id}')">Excluir do Banco</button>
         </div>
         <div class="effect-item-details">
-          <span>Efeito por Turno: ${e.valorTurno !== 0 ? `${e.valorTurno > 0 ? '+' : ''}${e.valorTurno} ${e.recurso.toUpperCase()}` : 'Nenhum'}</span>
           <span>Duração: ${e.duracao > 0 ? `${e.duracao} Turnos` : 'Infinita'}</span>
           <span>Escalamento: ${e.tipoEscala} (${e.fatorEscala})</span>
         </div>
@@ -1091,27 +1117,61 @@ function adicionarEfeitoGlobalNaFicha() {
   recalcularTudo();
 }
 
+// --- RENDERIZAÇÃO E CONTROLE DOS EFEITOS NA FICHA ---
 function renderEfeitos() {
   const container = document.getElementById('lista-efeitos');
   if (!container) return;
   container.innerHTML = '';
 
   efeitos.forEach((e, idx) => {
-    let tagsBuffs = e.buffs ? e.buffs.map(b => `<span class="buff-tag">${b.alvoNome}: ${b.val > 0 ? '+' : ''}${b.val}</span>`).join('') : '';
+    let lvl = e.nivelAtual || 1;
+    
+    let tagsBuffs = e.buffs ? e.buffs.map(b => {
+      let valEscalado = calcularEfeitoValorEscalado(b.val, e.tipoEscala, e.fatorEscala, lvl);
+      return `<span class="buff-tag">${b.alvoNome}: ${valEscalado > 0 ? '+' : ''}${valEscalado.toFixed(1).replace('.0','')}</span>`;
+    }).join('') : '';
+
+    let tagsTurno = e.efeitosTurno ? e.efeitosTurno.map(et => {
+      let valEscalado = calcularEfeitoValorEscalado(et.valor, e.tipoEscala, e.fatorEscala, lvl);
+      return `<span class="buff-tag" style="background:#00d2ff; color:#000;">${valEscalado > 0 ? '+' : ''}${valEscalado.toFixed(1).replace('.0','')} ${et.recurso.toUpperCase()}/turno</span>`;
+    }).join('') : '';
+
     container.innerHTML += `
       <li class="effect-item">
         <div class="effect-item-header">
-          <span><strong>[${e.cat}]</strong> ${e.nome} (Nv. ${e.nivelAtual || 1})</span>
+          <span><strong>[${e.cat}]</strong> ${e.nome}</span>
+          <div class="effect-item-controls">
+            <label style="font-size: 0.85rem; color:#a8a8b3;">Nível:</label>
+            <button type="button" class="btn-sub" onclick="alterarNivelEfeitoManual(${idx}, -1)">-</button>
+            <input type="number" value="${lvl}" min="1" style="width: 45px; text-align:center;" onchange="alterarNivelEfeitoDireto(${idx}, this.value)">
+            <button type="button" class="btn-sub" onclick="alterarNivelEfeitoManual(${idx}, 1)">+</button>
+          </div>
           <button class="btn-danger" onclick="removerEfeitoFicha(${idx})">Remover</button>
         </div>
-        <div class="buffs-tags">${tagsBuffs}</div>
+        <div class="buffs-tags">${tagsTurno} ${tagsBuffs}</div>
         <div class="effect-item-details">
-          <span>Restante: ${e.duracao > 0 ? `${e.duracao - e.turnosPassados} turnos` : 'Infinito'}</span>
-          <span>Efeito de Turno: ${e.valorTurno ? `${e.valorTurno > 0 ? '+' : ''}${e.valorTurno} ${e.recurso.toUpperCase()}` : 'Nenhum'}</span>
+          <span>Duração Restante: ${e.duracao > 0 ? `${Math.max(0, e.duracao - (e.turnosPassados || 0))} turnos` : 'Infinita'}</span>
+          <span>Evolução Automática: ${e.turnosEvoluir > 0 ? `A cada ${e.turnosEvoluir} turnos` : 'Manual'}</span>
         </div>
       </li>
     `;
   });
+}
+
+function alterarNivelEfeitoManual(idx, delta) {
+  if (efeitos[idx]) {
+    efeitos[idx].nivelAtual = Math.max(1, (efeitos[idx].nivelAtual || 1) + delta);
+    renderEfeitos();
+    recalcularTudo();
+  }
+}
+
+function alterarNivelEfeitoDireto(idx, valor) {
+  if (efeitos[idx]) {
+    efeitos[idx].nivelAtual = Math.max(1, parseInt(valor) || 1);
+    renderEfeitos();
+    recalcularTudo();
+  }
 }
 
 function removerEfeitoFicha(idx) {
@@ -1120,7 +1180,7 @@ function removerEfeitoFicha(idx) {
   recalcularTudo();
 }
 
-// --- PASSAGEM DE TURNO CORRIGIDA ---
+// --- PASSAGEM DE TURNO COM SUPORTE A MÚLTIPLOS EFEITOS E ESCALAMENTO ---
 function passarTurnoJogador() {
   processarTurnoIndividual();
   recalcularTudo();
@@ -1142,17 +1202,19 @@ function mestrePassarTurnoGeral() {
             e.nivelAtual = (e.nivelAtual || 1) + 1;
           }
 
-          if (e.recurso && e.recurso !== 'none' && e.valorTurno) {
-            let campoId = `${e.recurso.toLowerCase()}-atual`;
-            let valAtual = parseInt(f[campoId]) || 0;
-            f[campoId] = valAtual + e.valorTurno;
+          if (e.efeitosTurno && Array.isArray(e.efeitosTurno)) {
+            e.efeitosTurno.forEach(et => {
+              let campoId = `${et.recurso.toLowerCase()}-atual`;
+              let valEscalado = calcularEfeitoValorEscalado(et.valor, e.tipoEscala, e.fatorEscala, e.nivelAtual || 1);
+              let valAtual = parseInt(f[campoId]) || 0;
+              f[campoId] = Math.round(valAtual + valEscalado);
+            });
           }
 
           return e.duracao === 0 || e.turnosPassados < e.duracao;
         });
       }
 
-      // Aplica efeitos de itens equipados por turno
       if (f.equipamentos && Array.isArray(f.equipamentos)) {
         f.equipamentos.forEach(item => {
           if (item.efeitoTurno && item.efeitoTurno.recurso !== 'none' && item.efeitoTurno.valor) {
@@ -1176,12 +1238,15 @@ function processarTurnoIndividual() {
       e.nivelAtual = (e.nivelAtual || 1) + 1;
     }
 
-    if (e.recurso && e.recurso !== 'none' && e.valorTurno) {
-      let campoEl = document.getElementById(`${e.recurso.toLowerCase()}-atual`);
-      if (campoEl) {
-        let valAtual = parseInt(campoEl.value) || 0;
-        campoEl.value = valAtual + e.valorTurno;
-      }
+    if (e.efeitosTurno && Array.isArray(e.efeitosTurno)) {
+      e.efeitosTurno.forEach(et => {
+        let campoEl = document.getElementById(`${et.recurso.toLowerCase()}-atual`);
+        if (campoEl) {
+          let valEscalado = calcularEfeitoValorEscalado(et.valor, e.tipoEscala, e.fatorEscala, e.nivelAtual || 1);
+          let valAtual = parseInt(campoEl.value) || 0;
+          campoEl.value = Math.round(valAtual + valEscalado);
+        }
+      });
     }
 
     return e.duracao === 0 || e.turnosPassados < e.duracao;
