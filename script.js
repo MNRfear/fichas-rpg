@@ -603,26 +603,60 @@ function deletarItem(itemId) {
 }
 
 // ==========================================
-// EFEITOS DE STATUS E TURNO DE JOGADOR
+// EFEITOS DE STATUS E TURNO DO JOGADOR
 // ==========================================
 function passarTurnoJogador() {
   if (!fichaAtualId) return;
 
-  db.ref(`fichas/${fichaAtualId}/efeitosAtivos`).once('value', snapshot => {
-    const efeitos = snapshot.val() || {};
+  db.ref(`fichas/${fichaAtualId}`).once('value', snapshot => {
+    const ficha = snapshot.val() || {};
+    const efeitos = ficha.efeitosAtivos || {};
+    const recursos = ficha.recursosAtuais || { pv: 0, pe: 0, san: 0, ma: 0, tp: 0 };
     const atualizados = {};
+
+    let alterouRecursos = false;
 
     Object.keys(efeitos).forEach(key => {
       const ef = efeitos[key];
+
+      // 1. Processa alterações de recursos por turno (ex: -2 PV, +1 PE)
+      const alteracoes = ef.turnosTemp || ef.efeitosTurno || [];
+      alteracoes.forEach(alt => {
+        const rec = alt.recurso || alt.alvo;
+        const val = parseInt(alt.valor) || 0;
+
+        if (rec && val !== 0) {
+          if (recursos[rec] !== undefined) {
+            recursos[rec] += val;
+            alterouRecursos = true;
+          }
+        }
+      });
+
+      // 2. Decrementa a duração do efeito (se não for infinito / 0)
       if (ef.duracao > 0) {
         ef.duracao -= 1;
       }
+
+      // Mantém o efeito se a duração for infinita (0) ou se ainda resta pelo menos 1 turno
       if (ef.duracao !== 0) {
         atualizados[key] = ef;
       }
     });
 
-    db.ref(`fichas/${fichaAtualId}/efeitosAtivos`).set(atualizados);
+    // Atualiza os recursos na tela se tiverem mudado
+    if (alterouRecursos) {
+      if (document.getElementById('pv-atual')) document.getElementById('pv-atual').value = recursos.pv;
+      if (document.getElementById('pe-atual')) document.getElementById('pe-atual').value = recursos.pe;
+      if (document.getElementById('san-atual')) document.getElementById('san-atual').value = recursos.san;
+      if (document.getElementById('ma-atual')) document.getElementById('ma-atual').value = recursos.ma;
+    }
+
+    // Salva no Firebase os novos recursos e a lista de efeitos atualizada
+    db.ref(`fichas/${fichaAtualId}`).update({
+      recursosAtuais: recursos,
+      efeitosAtivos: atualizados
+    });
   });
 }
 
@@ -675,17 +709,38 @@ function carregarPainelMestre() {
 function mestrePassarTurnoGeral() {
   db.ref('fichas').once('value', snapshot => {
     const fichas = snapshot.val() || {};
+    
     Object.keys(fichas).forEach(id => {
-      // Simula passar o turno em todas as fichas
-      const efAtivos = fichas[id].efeitosAtivos || {};
-      const novos = {};
+      const f = fichas[id];
+      const efAtivos = f.efeitosAtivos || {};
+      const recursos = f.recursosAtuais || { pv: 0, pe: 0, san: 0, ma: 0, tp: 0 };
+      const novosEfeitos = {};
+
       Object.keys(efAtivos).forEach(k => {
-        if (efAtivos[k].duracao > 0) efAtivos[k].duracao -= 1;
-        if (efAtivos[k].duracao !== 0) novos[k] = efAtivos[k];
+        const ef = efAtivos[k];
+        
+        // Aplica o dano/cura do turno
+        const alteracoes = ef.turnosTemp || ef.efeitosTurno || [];
+        alteracoes.forEach(alt => {
+          const rec = alt.recurso || alt.alvo;
+          const val = parseInt(alt.valor) || 0;
+          if (rec && recursos[rec] !== undefined) {
+            recursos[rec] += val;
+          }
+        });
+
+        // Reduz turno
+        if (ef.duracao > 0) ef.duracao -= 1;
+        if (ef.duracao !== 0) novosEfeitos[k] = ef;
       });
-      db.ref(`fichas/${id}/efeitosAtivos`).set(novos);
+
+      db.ref(`fichas/${id}`).update({
+        recursosAtuais: recursos,
+        efeitosAtivos: novosEfeitos
+      });
     });
-    alert("Turno de todas as fichas foi avançado!");
+
+    alert("Turno de todas as fichas avançado e efeitos aplicados!");
   });
 }
 
