@@ -1,6 +1,7 @@
 // ==========================================
 // CONFIGURAÇÃO DO FIREBASE
 // ==========================================
+// Substitua pelas credenciais do seu projeto Firebase Console
 const firebaseConfig = {
   apiKey: "SUA_API_KEY",
   authDomain: "SEU_PROJETO.firebaseapp.com",
@@ -11,6 +12,7 @@ const firebaseConfig = {
   appId: "1:1234567890:web:abcdef123456"
 };
 
+// Inicializa o Firebase se ainda não foi inicializado
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
@@ -19,7 +21,7 @@ const db = firebase.database();
 // ==========================================
 // ESTADO GLOBAL DA APLICAÇÃO
 // ==========================================
-let modoAcesso = 'player';
+let modoAcesso = 'player'; // 'player' ou 'gm'
 let fichaAtualId = null;
 let escutadorFirebase = null;
 let ehMestre = false;
@@ -27,6 +29,7 @@ let buffsTempItem = [];
 let turnosTempGm = [];
 let buffsTempGm = [];
 
+// Lista Padrão de Perícias do Sistema
 const LISTA_PERICIAS_PADRAO = [
   "Acrobacia", "Adestramento", "Artes", "Atletismo", "Atualidades", 
   "Ciência", "Diplomacia", "Enganação", "Fortitude", "Furtividade", 
@@ -35,14 +38,15 @@ const LISTA_PERICIAS_PADRAO = [
   "Religião", "Sobrevivência", "Tática", "Tecnologia", "Vontade"
 ];
 
+// Lista de Atributos/Recursos para Puxar nos Selects de Buff
 const OPCOES_BUFF_ALVO = [
   "Força", "Agilidade", "Vigor", "Inteligência", "Presença", "Carisma", "Sorte",
-  "Defesa", "Evasão", "pv", "pe", "san", "ma",
+  "Defesa", "Evasão", "PV Max", "PE Max", "SAN Max", "MA Max",
   ...LISTA_PERICIAS_PADRAO
 ];
 
 // ==========================================
-// INICIALIZAÇÃO
+// INICIALIZAÇÃO DA PÁGINA
 // ==========================================
 window.addEventListener('DOMContentLoaded', () => {
   preencherSelectsBuffs();
@@ -50,31 +54,30 @@ window.addEventListener('DOMContentLoaded', () => {
   carregarEfeitosGlobaisMestre();
 });
 
+// Preenche os selects de Buff/Debuff com atributos e perícias
 function preencherSelectsBuffs() {
   const selectItem = document.getElementById('buff-alvo');
   const selectGm = document.getElementById('gm-effect-buff-alvo');
   
-  if (selectItem) {
-    selectItem.innerHTML = '';
-    OPCOES_BUFF_ALVO.forEach(opcao => {
-      const opt = document.createElement('option');
-      opt.value = opcao;
-      opt.textContent = opcao;
-      selectItem.appendChild(opt);
-    });
-  }
+  if (!selectItem || !selectGm) return;
 
-  if (selectGm) {
-    selectGm.innerHTML = '';
-    OPCOES_BUFF_ALVO.forEach(opcao => {
-      const opt = document.createElement('option');
-      opt.value = opcao;
-      opt.textContent = opcao;
-      selectGm.appendChild(opt);
-    });
-  }
+  selectItem.innerHTML = '';
+  selectGm.innerHTML = '';
+
+  OPCOES_BUFF_ALVO.forEach(opcao => {
+    const opt1 = document.createElement('option');
+    opt1.value = opcao;
+    opt1.textContent = opcao;
+    selectItem.appendChild(opt1);
+
+    const opt2 = document.createElement('option');
+    opt2.value = opcao;
+    opt2.textContent = opcao;
+    selectGm.appendChild(opt2);
+  });
 }
 
+// Renderiza a grade de perícias na interface
 function renderizarPericiasBase() {
   const container = document.getElementById('grid-pericias');
   if (!container) return;
@@ -93,14 +96,14 @@ function renderizarPericiasBase() {
 }
 
 // ==========================================
-// NAVEGAÇÃO E MODOS DE ACESSO
+// MODO DE ACESSO E NAVEGAÇÃO ENTRE TELAS
 // ==========================================
 function setModoAcesso(modo) {
   modoAcesso = modo;
-  document.getElementById('btn-mode-player')?.classList.toggle('active', modo === 'player');
-  document.getElementById('btn-mode-gm')?.classList.toggle('active', modo === 'gm');
-  document.getElementById('panel-player')?.classList.toggle('active', modo === 'player');
-  document.getElementById('panel-gm')?.classList.toggle('active', modo === 'gm');
+  document.getElementById('btn-mode-player').classList.toggle('active', modo === 'player');
+  document.getElementById('btn-mode-gm').classList.toggle('active', modo === 'gm');
+  document.getElementById('panel-player').classList.toggle('active', modo === 'player');
+  document.getElementById('panel-gm').classList.toggle('active', modo === 'gm');
 }
 
 function alternarTelas(idTelaAtiva) {
@@ -110,27 +113,24 @@ function alternarTelas(idTelaAtiva) {
 }
 
 function entrarComoJogador() {
-  const idInput = document.getElementById('input-player-id')?.value.trim();
+  const idInput = document.getElementById('input-player-id').value.trim();
   if (!idInput) {
     alert("Por favor, digite o nome ou ID do seu personagem!");
     return;
   }
   fichaAtualId = idInput;
   ehMestre = false;
-  
-  const badge = document.getElementById('badge-gm-view');
-  if (badge) badge.style.display = 'none';
-  
-  const lbl = document.getElementById('label-ficha-ativa');
-  if (lbl) lbl.textContent = `Ficha: ${fichaAtualId}`;
+  document.getElementById('badge-gm-view').style.display = 'none';
+  document.getElementById('label-ficha-ativa').textContent = `Ficha: ${fichaAtualId}`;
   
   alternarTelas('screen-sheet');
   iniciarSincronizacaoFicha(fichaAtualId);
 }
 
 function entrarComoMestre() {
-  const senha = document.getElementById('input-gm-pass')?.value;
-  if (senha === "2510" || senha === "mestre") {
+  const senha = document.getElementById('input-gm-pass').value;
+  // Defina sua senha de mestre aqui se quiser validação simples
+  if (senha === "123" || senha === "mestre") {
     ehMestre = true;
     alternarTelas('screen-gm-dashboard');
     carregarPainelMestre();
@@ -142,13 +142,8 @@ function entrarComoMestre() {
 function abrirFichaPeloMestre(idFicha) {
   fichaAtualId = idFicha;
   ehMestre = true;
-  
-  const badge = document.getElementById('badge-gm-view');
-  if (badge) badge.style.display = 'inline-block';
-  
-  const lbl = document.getElementById('label-ficha-ativa');
-  if (lbl) lbl.textContent = `[MESTRE] Editando: ${fichaAtualId}`;
-  
+  document.getElementById('badge-gm-view').style.display = 'inline-block';
+  document.getElementById('label-ficha-ativa').textContent = `[MESTRE] Editando: ${fichaAtualId}`;
   alternarTelas('screen-sheet');
   iniciarSincronizacaoFicha(fichaAtualId);
 }
@@ -162,10 +157,11 @@ function voltarParaSelecao() {
 }
 
 // ==========================================
-// SINCRONIZAÇÃO BANCO DE DADOS
+// BANCO DE DADOS & SINCRONIZAÇÃO DA FICHA
 // ==========================================
 function iniciarSincronizacaoFicha(idFicha) {
   const refFicha = db.ref('fichas/' + idFicha);
+  
   if (escutadorFirebase) refFicha.off();
 
   escutadorFirebase = refFicha.on('value', snapshot => {
@@ -173,6 +169,7 @@ function iniciarSincronizacaoFicha(idFicha) {
     if (dados) {
       preencherFormularioFicha(dados);
     } else {
+      // Se a ficha não existir no banco, cria uma padrão
       salvarDados();
     }
   });
@@ -245,6 +242,7 @@ function obterDadosFormulario() {
     }
   };
 
+  // Coleta Perícias Dinamicamente
   dados.pericias = {};
   LISTA_PERICIAS_PADRAO.forEach(pericia => {
     const idKey = 'pericia-' + pericia.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-');
@@ -330,13 +328,13 @@ function preencherFormularioFicha(dados) {
   }
 
   recalcularTudo();
-  renderizarInventario(dados.inventario || {});
-  renderizarEfeitosFicha(dados.efeitosAtivos || {});
-  renderizarAnotacoes(dados.anotacoes || {});
+  renderizarInventario(dados.inventario || []);
+  renderizarEfeitosFicha(dados.efeitosAtivos || []);
+  renderizarAnotacoes(dados.anotacoes || []);
 }
 
 // ==========================================
-// CÁLCULOS AUTOMÁTICOS
+// RECALCULO AUTOMÁTICO DE ATRIBUTOS E STATUS
 // ==========================================
 function recalcularTudo() {
   const vigor = parseInt(document.getElementById('attr-vigor')?.value) || 10;
@@ -346,6 +344,7 @@ function recalcularTudo() {
   const nivel = parseInt(document.getElementById('nivel')?.value) || 1;
   const classe = document.getElementById('classe-base')?.value || 'Místico';
 
+  // Cálculos Automáticos de PV, PE, SAN, MA
   let pvMax = 10 + vigor + (nivel * 2);
   let peMax = 10 + pres + nivel;
   let sanMax = 10 + int + nivel;
@@ -355,15 +354,16 @@ function recalcularTudo() {
   if (classe === 'Especialista') peMax += 5;
   if (classe === 'Místico') maMax += 15;
 
-  if (document.getElementById('pv-max')) document.getElementById('pv-max').value = pvMax;
-  if (document.getElementById('pe-max')) document.getElementById('pe-max').value = peMax;
-  if (document.getElementById('san-max')) document.getElementById('san-max').value = sanMax;
-  if (document.getElementById('ma-max')) document.getElementById('ma-max').value = maMax;
+  document.getElementById('pv-max').value = pvMax;
+  document.getElementById('pe-max').value = peMax;
+  document.getElementById('san-max').value = sanMax;
+  document.getElementById('ma-max').value = maMax;
 
+  // Defesa e Evasão
   const defVal = 10 + Math.floor((agi - 10) / 2);
   const evaVal = 10 + agi;
-  if (document.getElementById('def-val')) document.getElementById('def-val').value = defVal;
-  if (document.getElementById('eva-val')) document.getElementById('eva-val').value = evaVal;
+  document.getElementById('def-val').value = defVal;
+  document.getElementById('eva-val').value = evaVal;
 
   recalcularSlotsMagia();
   salvarDados();
@@ -375,6 +375,7 @@ function formatarNEX(input) {
   salvarDados();
 }
 
+// Tooltip Pop-up de Defesas Específicas
 function toggleDefesaTooltip(event) {
   event.stopPropagation();
   const box = document.getElementById('defensa-tooltip-box');
@@ -389,7 +390,7 @@ document.addEventListener('click', (e) => {
 });
 
 // ==========================================
-// ABAS E NAVEGAÇÃO INTERNA
+// NAVEGAÇÃO DE ABAS & SUB-ABAS
 // ==========================================
 function openTab(tabId, event) {
   document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
@@ -410,25 +411,24 @@ function openSubTab(subTabId, event) {
 }
 
 // ==========================================
-// EXP (MODAL)
+// MODAL DE EXPERIÊNCIA (XP)
 // ==========================================
 function abrirModalXP() {
-  document.getElementById('modal-xp')?.classList.add('active');
+  document.getElementById('modal-xp').classList.add('active');
 }
 
 function fecharModalXP() {
-  document.getElementById('modal-xp')?.classList.remove('active');
+  document.getElementById('modal-xp').classList.remove('active');
 }
 
 function somarXPInput(val) {
   const input = document.getElementById('xp-input-val');
-  if (input) input.value = (parseInt(input.value) || 0) + val;
+  input.value = (parseInt(input.value) || 0) + val;
 }
 
 function confirmarGanhoXP() {
-  const ganho = parseInt(document.getElementById('xp-input-val')?.value) || 0;
+  const ganho = parseInt(document.getElementById('xp-input-val').value) || 0;
   const expDisplay = document.getElementById('exp-display');
-  if (!expDisplay) return;
   
   let partes = expDisplay.value.split('/');
   let atual = parseInt(partes[0]) || 0;
@@ -439,7 +439,7 @@ function confirmarGanhoXP() {
     atual -= max;
     max = Math.floor(max * 1.5);
     const nivelEl = document.getElementById('nivel');
-    if (nivelEl) nivelEl.value = (parseInt(nivelEl.value) || 1) + 1;
+    nivelEl.value = (parseInt(nivelEl.value) || 1) + 1;
   }
 
   expDisplay.value = `${atual} / ${max}`;
@@ -448,7 +448,7 @@ function confirmarGanhoXP() {
 }
 
 // ==========================================
-// SLOTS DE MAGIA
+// GERENCIAMENTO DE SLOTS DE MAGIA
 // ==========================================
 function recalcularSlotsMagia() {
   const container = document.getElementById('circulos-grid');
@@ -463,6 +463,7 @@ function recalcularSlotsMagia() {
     return;
   }
 
+  // Tabela simplificada de slots por nível
   const qtdSlots = Math.min(c1Nv, 5); 
 
   for (let circulo = 1; circulo <= qtdSlots; circulo++) {
@@ -488,16 +489,14 @@ function zerarTodosSlots() {
 }
 
 // ==========================================
-// INVENTÁRIO
+// INVENTÁRIO, ITENS E CARGA
 // ==========================================
 function adicionarBuffItemTemp() {
-  const alvo = document.getElementById('buff-alvo')?.value;
-  const valor = parseInt(document.getElementById('buff-valor')?.value) || 0;
+  const alvo = document.getElementById('buff-alvo').value;
+  const valor = parseInt(document.getElementById('buff-valor').value) || 0;
 
-  if (alvo) {
-    buffsTempItem.push({ alvo, valor });
-    renderizarBuffsTempItem();
-  }
+  buffsTempItem.push({ alvo, valor });
+  renderizarBuffsTempItem();
 }
 
 function renderizarBuffsTempItem() {
@@ -516,17 +515,17 @@ function removerBuffTempItem(idx) {
 function criarItem() {
   if (!fichaAtualId) return;
 
-  const nome = document.getElementById('item-nome')?.value.trim();
+  const nome = document.getElementById('item-nome').value.trim();
   if (!nome) {
     alert("Digite o nome do item!");
     return;
   }
 
-  const qtd = parseInt(document.getElementById('item-qtd')?.value) || 1;
-  const carga = parseFloat(document.getElementById('item-carga')?.value) || 0;
-  const isMochila = document.getElementById('item-is-mochila')?.checked || false;
-  const bonusCarga = parseFloat(document.getElementById('item-bonus-carga')?.value) || 0;
-  const desc = document.getElementById('item-desc')?.value || '';
+  const qtd = parseInt(document.getElementById('item-qtd').value) || 1;
+  const carga = parseFloat(document.getElementById('item-carga').value) || 0;
+  const isMochila = document.getElementById('item-is-mochila').checked;
+  const bonusCarga = parseFloat(document.getElementById('item-bonus-carga').value) || 0;
+  const desc = document.getElementById('item-desc').value;
 
   const novoItem = {
     id: Date.now().toString(),
@@ -541,8 +540,9 @@ function criarItem() {
   };
 
   db.ref(`fichas/${fichaAtualId}/inventario/${novoItem.id}`).set(novoItem, () => {
-    if (document.getElementById('item-nome')) document.getElementById('item-nome').value = '';
-    if (document.getElementById('item-desc')) document.getElementById('item-desc').value = '';
+    // Limpa os campos
+    document.getElementById('item-nome').value = '';
+    document.getElementById('item-desc').value = '';
     buffsTempItem = [];
     renderizarBuffsTempItem();
   });
@@ -587,10 +587,11 @@ function renderizarInventario(inventarioObj) {
     }
   });
 
+  // Atualiza Barra de Carga
   const forca = parseInt(document.getElementById('attr-forca')?.value) || 10;
-  if (document.getElementById('carga-atual')) document.getElementById('carga-atual').textContent = cargaAtual;
-  if (document.getElementById('carga-base-max')) document.getElementById('carga-base-max').textContent = forca;
-  if (document.getElementById('carga-extra-display')) document.getElementById('carga-extra-display').textContent = `+ ${cargaExtraTot} Kg`;
+  document.getElementById('carga-atual').textContent = cargaAtual;
+  document.getElementById('carga-base-max').textContent = forca;
+  document.getElementById('carga-extra-display').textContent = `+ ${cargaExtraTot} Kg`;
 }
 
 function toggleEquiparItem(itemId, estado) {
@@ -602,53 +603,26 @@ function deletarItem(itemId) {
 }
 
 // ==========================================
-// EFEITOS E TURNO (SISTEMA DE DANO/CURA POR TURNO CORRIGIDO)
+// EFEITOS DE STATUS E TURNO DE JOGADOR
 // ==========================================
 function passarTurnoJogador() {
   if (!fichaAtualId) return;
 
-  db.ref(`fichas/${fichaAtualId}`).once('value', snapshot => {
-    const ficha = snapshot.val() || {};
-    const efeitos = ficha.efeitosAtivos || {};
-    const recursos = ficha.recursosAtuais || { pv: 0, pe: 0, san: 0, ma: 0, tp: 0 };
+  db.ref(`fichas/${fichaAtualId}/efeitosAtivos`).once('value', snapshot => {
+    const efeitos = snapshot.val() || {};
     const atualizados = {};
-
-    let alterouRecursos = false;
 
     Object.keys(efeitos).forEach(key => {
       const ef = efeitos[key];
-
-      const alteracoes = ef.turnosTemp || ef.efeitosTurno || [];
-      alteracoes.forEach(alt => {
-        const rec = (alt.recurso || alt.alvo || '').toLowerCase();
-        const val = parseInt(alt.valor) || 0;
-
-        if (rec && val !== 0 && recursos[rec] !== undefined) {
-          recursos[rec] += val;
-          alterouRecursos = true;
-        }
-      });
-
       if (ef.duracao > 0) {
         ef.duracao -= 1;
       }
-
       if (ef.duracao !== 0) {
         atualizados[key] = ef;
       }
     });
 
-    if (alterouRecursos) {
-      if (document.getElementById('pv-atual')) document.getElementById('pv-atual').value = recursos.pv;
-      if (document.getElementById('pe-atual')) document.getElementById('pe-atual').value = recursos.pe;
-      if (document.getElementById('san-atual')) document.getElementById('san-atual').value = recursos.san;
-      if (document.getElementById('ma-atual')) document.getElementById('ma-atual').value = recursos.ma;
-    }
-
-    db.ref(`fichas/${fichaAtualId}`).update({
-      recursosAtuais: recursos,
-      efeitosAtivos: atualizados
-    });
+    db.ref(`fichas/${fichaAtualId}/efeitosAtivos`).set(atualizados);
   });
 }
 
@@ -662,7 +636,7 @@ function renderizarEfeitosFicha(efeitosObj) {
   lista.forEach(ef => {
     const li = document.createElement('li');
     li.innerHTML = `
-      <strong>${ef.nome}</strong> (${ef.categoria || 'Geral'}) - Duração: ${ef.duracao === 0 ? 'Infinita' : ef.duracao + ' turnos'}
+      <strong>${ef.nome}</strong> (${ef.categoria}) - Duracao: ${ef.duracao === 0 ? 'Infinita' : ef.duracao + ' turnos'}
       <button type="button" class="btn-danger" onclick="removerEfeitoFicha('${ef.id}')">Remover</button>
     `;
     container.appendChild(li);
@@ -674,7 +648,7 @@ function removerEfeitoFicha(efId) {
 }
 
 // ==========================================
-// PAINEL DO MESTRE
+// PAINEL DO MESTRE & GERENCIADOR GLOBAL
 // ==========================================
 function carregarPainelMestre() {
   db.ref('fichas').on('value', snapshot => {
@@ -690,7 +664,7 @@ function carregarPainelMestre() {
       card.innerHTML = `
         <h3>${f.info?.nome || id}</h3>
         <p><strong>Nível:</strong> ${f.info?.nivel || 1} | <strong>Classe:</strong> ${f.info?.classeBase || '-'}</p>
-        <p><strong>PV:</strong> ${f.recursosAtuais?.pv || 0}</p>
+        <p><strong>PV:</strong> ${f.recursosAtuais?.pv || 0} / ${document.getElementById('pv-max')?.value || 0}</p>
         <button type="button" class="btn-primary" onclick="abrirFichaPeloMestre('${id}')">Abrir / Editar Ficha</button>
       `;
       container.appendChild(card);
@@ -701,89 +675,60 @@ function carregarPainelMestre() {
 function mestrePassarTurnoGeral() {
   db.ref('fichas').once('value', snapshot => {
     const fichas = snapshot.val() || {};
-    
     Object.keys(fichas).forEach(id => {
-      const f = fichas[id];
-      const efAtivos = f.efeitosAtivos || {};
-      const recursos = f.recursosAtuais || { pv: 0, pe: 0, san: 0, ma: 0, tp: 0 };
-      const novosEfeitos = {};
-
+      // Simula passar o turno em todas as fichas
+      const efAtivos = fichas[id].efeitosAtivos || {};
+      const novos = {};
       Object.keys(efAtivos).forEach(k => {
-        const ef = efAtivos[k];
-        
-        const alteracoes = ef.turnosTemp || ef.efeitosTurno || [];
-        alteracoes.forEach(alt => {
-          const rec = (alt.recurso || alt.alvo || '').toLowerCase();
-          const val = parseInt(alt.valor) || 0;
-          if (rec && recursos[rec] !== undefined) {
-            recursos[rec] += val;
-          }
-        });
-
-        if (ef.duracao > 0) ef.duracao -= 1;
-        if (ef.duracao !== 0) novosEfeitos[k] = ef;
+        if (efAtivos[k].duracao > 0) efAtivos[k].duracao -= 1;
+        if (efAtivos[k].duracao !== 0) novos[k] = efAtivos[k];
       });
-
-      db.ref(`fichas/${id}`).update({
-        recursosAtuais: recursos,
-        efeitosAtivos: novosEfeitos
-      });
+      db.ref(`fichas/${id}/efeitosAtivos`).set(novos);
     });
-
     alert("Turno de todas as fichas foi avançado!");
   });
 }
 
 function adicionarEfeitoTurnoTemp() {
-  const recurso = document.getElementById('gm-effect-recurso-alvo')?.value;
-  const valor = parseInt(document.getElementById('gm-effect-recurso-valor')?.value) || 0;
+  const recurso = document.getElementById('gm-effect-recurso-alvo').value;
+  const valor = parseInt(document.getElementById('gm-effect-recurso-valor').value) || 0;
+  turnosTempGm.push({ recurso, valor });
   
-  if (recurso) {
-    turnosTempGm.push({ recurso, valor });
-    const listEl = document.getElementById('lista-gm-effect-turnos-temp');
-    if (listEl) {
-      listEl.innerHTML = turnosTempGm.map(t => 
-        `<span class="tag-buff">${t.recurso.toUpperCase()}: ${t.valor}</span>`
-      ).join('');
-    }
-  }
+  document.getElementById('lista-gm-effect-turnos-temp').innerHTML = turnosTempGm.map(t => 
+    `<span class="tag-buff">${t.recurso.toUpperCase()}: ${t.valor}</span>`
+  ).join('');
 }
 
 function adicionarBuffEfeitoGmMtemp() {
-  const alvo = document.getElementById('gm-effect-buff-alvo')?.value;
-  const valor = parseInt(document.getElementById('gm-effect-buff-valor')?.value) || 0;
-  
-  if (alvo) {
-    buffsTempGm.push({ alvo, valor });
-    const listEl = document.getElementById('lista-gm-effect-buffs-temp');
-    if (listEl) {
-      listEl.innerHTML = buffsTempGm.map(b => 
-        `<span class="tag-buff">${b.alvo}: ${b.valor}</span>`
-      ).join('');
-    }
-  }
+  const alvo = document.getElementById('gm-effect-buff-alvo').value;
+  const valor = parseInt(document.getElementById('gm-effect-buff-valor').value) || 0;
+  buffsTempGm.push({ alvo, valor });
+
+  document.getElementById('lista-gm-effect-buffs-temp').innerHTML = buffsTempGm.map(b => 
+    `<span class="tag-buff">${b.alvo}: ${b.valor}</span>`
+  ).join('');
 }
 
 function salvarEfeitoGlobalMestre() {
-  const nome = document.getElementById('gm-effect-nome')?.value.trim();
+  const nome = document.getElementById('gm-effect-nome').value.trim();
   if (!nome) return alert("Digite o nome do efeito!");
 
   const efeito = {
     id: Date.now().toString(),
     nome,
-    categoria: document.getElementById('gm-effect-cat')?.value || 'Geral',
-    duracao: parseInt(document.getElementById('gm-effect-duracao')?.value) || 0,
+    categoria: document.getElementById('gm-effect-cat').value,
+    duracao: parseInt(document.getElementById('gm-effect-duracao').value) || 0,
     turnosTemp: [...turnosTempGm],
     buffsTemp: [...buffsTempGm]
   };
 
   db.ref(`efeitosGlobais/${efeito.id}`).set(efeito, () => {
-    alert("Efeito global criado!");
+    alert("Efeito salvo no Banco de Dados!");
     turnosTempGm = [];
     buffsTempGm = [];
-    if (document.getElementById('gm-effect-nome')) document.getElementById('gm-effect-nome').value = '';
-    if (document.getElementById('lista-gm-effect-turnos-temp')) document.getElementById('lista-gm-effect-turnos-temp').innerHTML = '';
-    if (document.getElementById('lista-gm-effect-buffs-temp')) document.getElementById('lista-gm-effect-buffs-temp').innerHTML = '';
+    document.getElementById('gm-effect-nome').value = '';
+    document.getElementById('lista-gm-effect-turnos-temp').innerHTML = '';
+    document.getElementById('lista-gm-effect-buffs-temp').innerHTML = '';
   });
 }
 
@@ -800,7 +745,7 @@ function carregarEfeitosGlobaisMestre() {
       if (selectFicha) {
         const opt = document.createElement('option');
         opt.value = ef.id;
-        opt.textContent = `${ef.nome} (${ef.categoria || 'Geral'})`;
+        opt.textContent = `${ef.nome} (${ef.categoria})`;
         selectFicha.appendChild(opt);
       }
 
@@ -815,7 +760,7 @@ function carregarEfeitosGlobaisMestre() {
 
 function adicionarEfeitoGlobalNaFicha() {
   const select = document.getElementById('select-efeitos-globais');
-  const efId = select?.value;
+  const efId = select.value;
   if (!efId || !fichaAtualId) return;
 
   db.ref(`efeitosGlobais/${efId}`).once('value', snapshot => {
@@ -827,7 +772,7 @@ function adicionarEfeitoGlobalNaFicha() {
 }
 
 // ==========================================
-// ANOTAÇÕES
+// BLOCOS DE ANOTAÇÕES DINÂMICOS
 // ==========================================
 function criarBlocoAnotacao() {
   if (!fichaAtualId) return;
