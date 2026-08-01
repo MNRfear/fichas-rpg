@@ -50,73 +50,71 @@
       <!-- Cards dos jogadores serão injetados aqui via JS -->
     </div>
 
-    <!-- ÁREA DE CRIAÇÃO E GERENCIAMENTO DE EFEITOS DE STATUS DO MESTRE -->
-    <div class="gm-effects-builder">
-      <h3>{ GERENCIADOR DE EFEITOS DE STATUS (BANCO DE DADOS) }</h3>
-      <div class="effects-grid-form">
-        <label>Nome do Efeito:
-          <input type="text" id="gm-effect-nome" placeholder="Ex: Queimadura, Sangramento">
-        </label>
-        <label>Categoria:
-          <select id="gm-effect-cat">
-            <option value="Debuff">Debuff</option>
-            <option value="Buff">Buff</option>
-            <option value="Condição">Condição</option>
-          </select>
-        </label>
-        <label>É Contínuo (Dano/Cura por Turno)?
-          <select id="gm-effect-is-continuous">
-            <option value="nao">Não</option>
-            <option value="sim">Sim</option>
-          </select>
-        </label>
-        <label>Recurso Afetado por Turno:
-          <select id="gm-effect-recurso">
-            <option value="none">Nenhum</option>
-            <option value="pv">Vida (PV)</option>
-            <option value="pe">Esforço (PE)</option>
-            <option value="san">Sanidade (SAN)</option>
-            <option value="ma">Mana (MA)</option>
-          </select>
-        </label>
-        <label>Valor Base por Turno (+ / -):
-          <input type="number" id="gm-effect-valor-turno" value="0">
-        </label>
-        <label>Duração em Turnos (0 = Infinito):
-          <input type="number" id="gm-effect-duracao" value="0">
-        </label>
-        <label>Evolui de Nível após Turnos? (0 = Não):
-          <input type="number" id="gm-effect-turnos-evoluir" value="0">
-        </label>
-<label>Tipo de Escalabilidade por Nível:
-  <select id="gm-effect-tipo-escala">
-    <option value="multiplicativo">Multiplicação (Base * Nível)</option>
-    <option value="percentual">Porcentagem (Base * %)</option>
-    <option value="adicao">Adição (Base + Acréscimo)</option>
-    <option value="exponencial">Exponencial (Base * Fator ^ (Nível - 1))</option>
-  </select>
-</label>
-        <label>Fator de Escalamento (% ou Acréscimo):
-          <input type="number" id="gm-effect-fator-escala" value="0" step="0.1" placeholder="Ex: 50 para 50% ou 2 para +2">
-        </label>
-      </div>
-
-      <div class="buffs-builder" style="margin-bottom: 15px;">
-        <label>Adicionar Buff/Debuff Estático de Atributo/Perícia ao Efeito:</label>
-        <div class="buff-input-group">
-          <select id="gm-effect-buff-alvo"></select>
-          <input type="number" id="gm-effect-buff-valor" value="1" style="width:70px;">
-          <button type="button" class="btn-sub" onclick="adicionarBuffEfeitoGmMtemp()">+ Bônus/Penalidade</button>
-        </div>
-        <div class="buffs-tags" id="lista-gm-effect-buffs-temp"></div>
-      </div>
-
-      <button type="button" class="btn-primary" onclick="salvarEfeitoGlobalMestre()">Salvar Efeito no Banco de Dados</button>
-
-      <h4 style="margin-top: 20px; color: #fff;">Efeitos Salvos no Banco:</h4>
-      <ul class="effect-list" id="lista-efeitos-globais-mestre" style="margin-top: 10px;"></ul>
-    </div>
+<!-- ÁREA DE CRIAÇÃO E GERENCIAMENTO DE EFEITOS DE STATUS DO MESTRE -->
+<div class="gm-effects-builder">
+  <h3>{ GERENCIADOR DE EFEITOS DE STATUS (BANCO DE DADOS) }</h3>
+  <div class="effects-grid-form">
+    <label>Nome do Efeito:
+      <input type="text" id="gm-effect-nome" placeholder="Ex: Queimadura Interminável">
+    </label>
+    <label>Categoria:
+      <select id="gm-effect-cat">
+        <option value="Debuff">Debuff</option>
+        <option value="Buff">Buff</option>
+        <option value="Condição">Condição</option>
+      </select>
+    </label>
+    <label>Duração em Turnos (0 = Infinito):
+      <input type="number" id="gm-effect-duracao" value="0">
+    </label>
+    <label>Evolui de Nível após Turnos? (0 = Não):
+      <input type="number" id="gm-effect-turnos-evoluir" value="0">
+    </label>
+    <label>Tipo de Escalabilidade por Nível:
+      <select id="gm-effect-tipo-escala">
+        <option value="multiplicativo">Multiplicação (Base * Nível)</option>
+        <option value="percentual">Porcentagem (Base * %)</option>
+        <option value="adicao">Adição (Base + Acréscimo)</option>
+        <option value="exponencial">Exponencial (Base * Fator ^ (Nível - 1))</option>
+      </select>
+    </label>
+    <label>Fator de Escalamento (% ou Acréscimo):
+      <input type="number" id="gm-effect-fator-escala" value="0" step="0.1" placeholder="Ex: 50 para 50% ou 2 para +2">
+    </label>
   </div>
+
+  <!-- ADICIONAR MÚLTIPLOS EFEITOS POR TURNO -->
+  <div class="buffs-builder" style="margin-bottom: 15px;">
+    <label>Adicionar Alteração Continuada por Turno (Vida, PE, SAN, etc.):</label>
+    <div class="buff-input-group">
+      <select id="gm-effect-recurso-alvo">
+        <option value="pv">Vida (PV)</option>
+        <option value="pe">Esforço (PE)</option>
+        <option value="san">Sanidade (SAN)</option>
+        <option value="ma">Mana (MA)</option>
+      </select>
+      <input type="number" id="gm-effect-recurso-valor" value="-1" placeholder="Valor (+/-)">
+      <button type="button" class="btn-sub" onclick="adicionarEfeitoTurnoTemp()">+ Efeito por Turno</button>
+    </div>
+    <div class="buffs-tags" id="lista-gm-effect-turnos-temp"></div>
+  </div>
+
+  <!-- ADICIONAR BUFFS / DEBUFFS ESTÁTICOS DE ATRIBUTOS/PERÍCIAS -->
+  <div class="buffs-builder" style="margin-bottom: 15px;">
+    <label>Adicionar Buff/Debuff Estático (Atributos, Defesas, Perícias):</label>
+    <div class="buff-input-group">
+      <select id="gm-effect-buff-alvo"></select>
+      <input type="number" id="gm-effect-buff-valor" value="1" style="width:70px;">
+      <button type="button" class="btn-sub" onclick="adicionarBuffEfeitoGmMtemp()">+ Bônus/Penalidade</button>
+    </div>
+    <div class="buffs-tags" id="lista-gm-effect-buffs-temp"></div>
+  </div>
+
+  <button type="button" class="btn-primary" onclick="salvarEfeitoGlobalMestre()">Salvar Efeito no Banco de Dados</button>
+
+  <h4 style="margin-top: 20px; color: #fff;">Efeitos Salvos no Banco:</h4>
+  <ul class="effect-list" id="lista-efeitos-globais-mestre" style="margin-top: 10px;"></ul>
+</div>
 
   <!-- 3. TELA DA FICHA DO JOGADOR -->
   <div id="screen-sheet" class="screen-container">
