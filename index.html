@@ -5,10 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sistema de Fichas RPG</title>
   <link rel="stylesheet" href="style.css?v=101">
-
-  <!-- SDKs do Firebase (Compat/v8) -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
 
@@ -59,7 +55,7 @@
       <h3>{ GERENCIADOR DE EFEITOS DE STATUS (BANCO DE DADOS) }</h3>
       <div class="effects-grid-form">
         <label>Nome do Efeito:
-          <input type="text" id="gm-effect-nome" placeholder="Ex: Queimadura Interminável">
+          <input type="text" id="gm-effect-nome" placeholder="Ex: Queimadura, Sangramento">
         </label>
         <label>Categoria:
           <select id="gm-effect-cat">
@@ -68,44 +64,45 @@
             <option value="Condição">Condição</option>
           </select>
         </label>
+        <label>É Contínuo (Dano/Cura por Turno)?
+          <select id="gm-effect-is-continuous">
+            <option value="nao">Não</option>
+            <option value="sim">Sim</option>
+          </select>
+        </label>
+        <label>Recurso Afetado por Turno:
+          <select id="gm-effect-recurso">
+            <option value="none">Nenhum</option>
+            <option value="pv">Vida (PV)</option>
+            <option value="pe">Esforço (PE)</option>
+            <option value="san">Sanidade (SAN)</option>
+            <option value="ma">Mana (MA)</option>
+          </select>
+        </label>
+        <label>Valor Base por Turno (+ / -):
+          <input type="number" id="gm-effect-valor-turno" value="0">
+        </label>
         <label>Duração em Turnos (0 = Infinito):
           <input type="number" id="gm-effect-duracao" value="0">
         </label>
         <label>Evolui de Nível após Turnos? (0 = Não):
           <input type="number" id="gm-effect-turnos-evoluir" value="0">
         </label>
-        <label>Tipo de Escalabilidade por Nível:
-          <select id="gm-effect-tipo-escala">
-            <option value="multiplicativo">Multiplicação (Base * Nível)</option>
-            <option value="percentual">Porcentagem (Base * %)</option>
-            <option value="adicao">Adição (Base + Acréscimo)</option>
-            <option value="exponencial">Exponencial (Base * Fator ^ (Nível - 1))</option>
-          </select>
-        </label>
+<label>Tipo de Escalabilidade por Nível:
+  <select id="gm-effect-tipo-escala">
+    <option value="multiplicativo">Multiplicação (Base * Nível)</option>
+    <option value="percentual">Porcentagem (Base * %)</option>
+    <option value="adicao">Adição (Base + Acréscimo)</option>
+    <option value="exponencial">Exponencial (Base * Fator ^ (Nível - 1))</option>
+  </select>
+</label>
         <label>Fator de Escalamento (% ou Acréscimo):
           <input type="number" id="gm-effect-fator-escala" value="0" step="0.1" placeholder="Ex: 50 para 50% ou 2 para +2">
         </label>
       </div>
 
-      <!-- ADICIONAR MÚLTIPLOS EFEITOS POR TURNO -->
       <div class="buffs-builder" style="margin-bottom: 15px;">
-        <label>Adicionar Alteração Continuada por Turno (Vida, PE, SAN, etc.):</label>
-        <div class="buff-input-group">
-          <select id="gm-effect-recurso-alvo">
-            <option value="pv">Vida (PV)</option>
-            <option value="pe">Esforço (PE)</option>
-            <option value="san">Sanidade (SAN)</option>
-            <option value="ma">Mana (MA)</option>
-          </select>
-          <input type="number" id="gm-effect-recurso-valor" value="-1" placeholder="Valor (+/-)">
-          <button type="button" class="btn-sub" onclick="adicionarEfeitoTurnoTemp()">+ Efeito por Turno</button>
-        </div>
-        <div class="buffs-tags" id="lista-gm-effect-turnos-temp"></div>
-      </div>
-
-      <!-- ADICIONAR BUFFS / DEBUFFS ESTÁTICOS DE ATRIBUTOS/PERÍCIAS -->
-      <div class="buffs-builder" style="margin-bottom: 15px;">
-        <label>Adicionar Buff/Debuff Estático (Atributos, Defesas, Perícias):</label>
+        <label>Adicionar Buff/Debuff Estático de Atributo/Perícia ao Efeito:</label>
         <div class="buff-input-group">
           <select id="gm-effect-buff-alvo"></select>
           <input type="number" id="gm-effect-buff-valor" value="1" style="width:70px;">
@@ -332,25 +329,31 @@
         <div id="subtab-rituais-sub" class="sub-tab-content">
           <textarea id="rituais-texto" rows="12" placeholder="Digite seus rituais..." onchange="salvarDados()"></textarea>
         </div>
-
         <div id="subtab-slots-sub" class="sub-tab-content">
           <div class="slots-container">
+            <h3>Gerenciamento de Slots de Magia</h3>
+            
             <div class="multiclass-box">
+              <h4>Multiclasse Mágica</h4>
               <div class="multiclass-row">
-                <label><input type="checkbox" id="classe-magica-1" onchange="recalcularSlotsMagia()"> Classe Mágica 1:</label>
+                <label>
+                  <input type="checkbox" id="classe-magica-1" onchange="recalcularSlotsMagia()"> Classe Adicional 1 é Mágica
+                </label>
                 <span>Nível:</span>
                 <input type="number" id="nv-classe-magica-1" value="0" min="0" max="20" onchange="recalcularSlotsMagia()">
               </div>
               <div class="multiclass-row">
-                <label><input type="checkbox" id="classe-magica-2" onchange="recalcularSlotsMagia()"> Classe Mágica 2:</label>
+                <label>
+                  <input type="checkbox" id="classe-magica-2" onchange="recalcularSlotsMagia()"> Classe Adicional 2 é Mágica
+                </label>
                 <span>Nível:</span>
                 <input type="number" id="nv-classe-magica-2" value="0" min="0" max="20" onchange="recalcularSlotsMagia()">
               </div>
             </div>
 
             <div class="slots-actions">
-              <button type="button" class="btn-restaurar" onclick="restaurarSlotsDescanso()">🔄 Descanso (Restaurar Slots)</button>
-              <button type="button" class="btn-zerar" onclick="zerarTodosSlots()">❌ Zerar Slots</button>
+              <button type="button" class="btn-restaurar" onclick="restaurarSlotsDescanso()">💤 Descanso (Restaurar Slots)</button>
+              <button type="button" class="btn-zerar" onclick="zerarTodosSlots()">🗑️ Zerar Todos os Slots</button>
             </div>
 
             <div class="circulos-grid" id="circulos-grid"></div>
@@ -358,29 +361,30 @@
         </div>
       </div>
 
-      <!-- ABA INVENTÁRIO & EQUIPAMENTOS -->
+      <!-- ABA INVENTÁRIO -->
       <div id="tab-inventario" class="tab-content">
-        <h2>{ INVENTÁRIO & CAPACIDADE }</h2>
-        
         <div class="carga-bar" id="carga-bar-container">
-          <h3>Carga Atual: <span id="carga-atual">0</span> Kg / Carga Máxima (Força): <span id="carga-base-max">10</span> Kg <span class="carga-extra-text" id="carga-extra-display">+ 0 Kg</span></h3>
-          <span class="alerta-erro" id="alerta-mochila-excesso" style="display:none;">⚠️ Suas mochilas ultrapassam sua capacidade base de Força!</span>
+          <h3>Carga Atual: <span id="carga-atual">0</span> / <span id="carga-base-max">0</span> Kg <span class="carga-extra-text" id="carga-extra-display">+ 0 Kg</span></h3>
+          <small id="alerta-mochila-excesso" class="alerta-erro" style="display:none;">⚠ Peso total das mochilas equipadas excede sua capacidade de Carga Base!</small>
         </div>
 
         <div class="item-creator">
-          <h3>Adicionar Novo Item</h3>
+          <h3>Criar Novo Item</h3>
           <div class="creator-fields">
             <input type="text" id="item-nome" placeholder="Nome do Item">
-            <input type="number" id="item-qtd" value="1" min="1" placeholder="Qtd">
-            <input type="number" id="item-carga" value="1" step="0.5" min="0" placeholder="Peso (Kg)">
+            <input type="number" id="item-qtd" value="1" placeholder="Qtd">
+            <input type="number" id="item-carga" value="1" step="0.5" placeholder="Carga (Kg)">
             <label class="checkbox-label">
-              <input type="checkbox" id="item-is-mochila"> É Mochila?
+              <input type="checkbox" id="item-is-mochila"> É Mochila/Bolsa?
             </label>
-            <input type="number" id="item-bonus-carga" value="0" min="0" placeholder="+ Carga Extra">
+            <input type="number" id="item-bonus-carga" value="0" placeholder="+Carga Extra">
           </div>
+          
+          <textarea id="item-desc" rows="2" placeholder="Descrição do item..."></textarea>
 
-          <div class="creator-fields">
-            <label>Alteração por Turno:</label>
+          <!-- EFEITO DE TURNO DO ITEM -->
+          <div class="creator-fields" style="background:#18181b; padding:8px; border-radius:4px; border:1px solid #29292e;">
+            <label class="checkbox-label"><strong>Efeito Continuo por Turno?</strong></label>
             <select id="item-turno-recurso">
               <option value="none">Nenhum</option>
               <option value="pv">Vida (PV)</option>
@@ -388,52 +392,53 @@
               <option value="san">Sanidade (SAN)</option>
               <option value="ma">Mana (MA)</option>
             </select>
-            <input type="number" id="item-turno-valor" value="0" placeholder="Valor (+/-)">
+            <input type="number" id="item-turno-valor" value="0" placeholder="Qtd/Turno (+ ou -)">
           </div>
 
           <div class="buffs-builder">
-            <label>Adicionar Buff/Debuff no Item:</label>
+            <label>Adicionar Buff ao Item:</label>
             <div class="buff-input-group">
               <select id="buff-alvo"></select>
               <input type="number" id="buff-valor" value="1" style="width:70px;">
-              <button type="button" class="btn-sub" onclick="adicionarBuffItemTemp()">+ Adicionar Bônus</button>
+              <button type="button" class="btn-sub" onclick="adicionarBuffItemTemp()">+ Buff</button>
             </div>
             <div class="buffs-tags" id="lista-buffs-temp"></div>
           </div>
 
           <div class="image-uploader">
-            <label>Imagem do Item (Opcional):</label>
+            <label>Imagem do Item:</label>
             <input type="file" id="item-img-input" accept="image/*">
           </div>
 
-          <textarea id="item-desc" rows="2" placeholder="Descrição do item..."></textarea>
           <button type="button" class="btn-primary" onclick="criarItem()">Criar Item</button>
         </div>
 
         <div class="grid-2col">
           <div>
-            <h2>Mochila / Inventário</h2>
+            <h2>{ INVENTÁRIO (MOCHILA) }</h2>
             <div id="lista-inventario"></div>
           </div>
           <div>
-            <h2>Equipados</h2>
+            <h2>{ EQUIPADOS / EM USO }</h2>
             <div id="lista-equipamentos"></div>
           </div>
         </div>
       </div>
 
-      <!-- ABA EFEITOS DE STATUS -->
+      <!-- ABA EFEITOS -->
       <div id="tab-efeitos" class="tab-content">
         <h2>{ EFEITOS DE STATUS ATIVOS }</h2>
         <div class="add-effect">
-          <label>Adicionar Efeito Global:</label>
-          <select id="select-efeitos-globais"></select>
-          <button type="button" class="btn-primary" onclick="adicionarEfeitoGlobalNaFicha()">+ Aplicar Efeito</button>
+          <label for="select-efeitos-globais">Adicionar Efeito Salvo pelo Mestre:</label>
+          <select id="select-efeitos-globais" style="min-width: 200px;">
+            <option value="">Selecione um efeito...</option>
+          </select>
+          <button type="button" class="btn-primary" onclick="adicionarEfeitoGlobalNaFicha()">Aplicar Efeito</button>
         </div>
         <ul class="effect-list" id="lista-efeitos"></ul>
       </div>
 
-      <!-- ABA BLOCOS DE ANOTAÇÕES -->
+      <!-- ABA ANOTAÇÕES -->
       <div id="tab-anotacoes" class="tab-content">
         <div class="anotacoes-header">
           <h2>{ BLOCOS DE ANOTAÇÕES }</h2>
@@ -442,27 +447,28 @@
         <div class="anotacoes-grid" id="container-anotacoes"></div>
       </div>
     </main>
+
   </div>
 
-  <!-- MODAL POP-UP DE XP -->
-  <div class="modal-overlay" id="modal-xp">
+  <!-- MODAL DE XP -->
+  <div id="modal-xp" class="modal-overlay">
     <div class="modal-box">
-      <h3>Adicionar Experiência (XP)</h3>
-      <input type="number" id="xp-input-val" value="0" min="0">
+      <h3>Gerenciador de Experiência</h3>
+      <input type="number" id="xp-input-val" placeholder="Quantidade de XP">
       <div class="modal-quick-buttons">
         <button type="button" class="btn-sub" onclick="somarXPInput(10)">+10</button>
         <button type="button" class="btn-sub" onclick="somarXPInput(50)">+50</button>
         <button type="button" class="btn-sub" onclick="somarXPInput(100)">+100</button>
-        <button type="button" class="btn-sub" onclick="somarXPInput(500)">+500</button>
       </div>
       <div class="modal-actions">
-        <button type="button" class="btn-success" onclick="confirmarGanhoXP()">Confirmar</button>
+        <button type="button" class="btn-primary" onclick="confirmarGanhoXP()">Adicionar</button>
         <button type="button" class="btn-danger" onclick="fecharModalXP()">Cancelar</button>
       </div>
     </div>
   </div>
 
-  <!-- Script principal da Ficha -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
