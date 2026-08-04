@@ -7,7 +7,6 @@ body { background-color: #121214; color: #e1e1e6; padding-bottom: 50px; }
 .screen-container { display: none; width: 100%; min-height: 100vh; }
 .screen-container.active { display: block; }
 
-/* TELA DE SELEÇÃO INICIAL (ESTILO C.R.I.S.) */
 #screen-select { background: radial-gradient(circle, #1f1f23 0%, #121214 100%); display: none; align-items: center; justify-content: center; padding: 20px; min-height: 100vh; }
 #screen-select.active { display: flex; }
 
@@ -42,13 +41,11 @@ body { background-color: #121214; color: #e1e1e6; padding-bottom: 50px; }
 
 .badge-gm { background: #00e1ff; color: #000; font-weight: bold; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; }
 
-/* BARRA DE NAVEGAÇÃO SUPERIOR DA FICHA */
 .top-nav-bar { display: flex; justify-content: space-between; align-items: center; background: #121214; padding: 10px 20px; border-bottom: 1px solid #29292e; gap: 10px; }
 
 /* ==========================================================================
    3. ESTILOS DA FICHA DO JOGADOR
    ========================================================================== */
-/* HEADER CABEÇALHO REDIMENSIONADO */
 .ficha-header { background: #18181b; padding: 20px; border-bottom: 3px solid #ff4655; }
 .header-grid { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
 
@@ -61,11 +58,9 @@ body { background-color: #121214; color: #e1e1e6; padding-bottom: 50px; }
 .field-large { flex: 3 1 220px; min-width: 200px; }
 .field-full { flex: 1 1 100%; width: 100%; }
 
-/* CAMPO DE XP COM BOTÃO DA MODAL */
 .xp-field-group { display: flex; gap: 6px; }
 .xp-field-group input { width: 100%; text-align: center; font-weight: bold; color: #00ff88; }
 
-/* FIXO NO TOPO: PAINEL DE STATUS */
 .status-section { background: #1f1f23; padding: 15px 20px; border-bottom: 1px solid #29292e; }
 .status-section h2 { border-left: 4px solid #ff4655; padding-left: 8px; margin-bottom: 12px; color: #ff4655; font-size: 1.2rem; }
 .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
@@ -75,7 +70,11 @@ body { background-color: #121214; color: #e1e1e6; padding-bottom: 50px; }
 .inline-inputs { display: flex; align-items: center; justify-content: center; gap: 4px; }
 .inline-inputs input { width: 45%; }
 
-/* DEFESA ESPECÍFICA POPUP / TOOLTIP */
+/* PAINEL DE CONTROLE DE REDUÇÃO DO MESTRE NOS STATUS (REQUISITO 2) */
+.gm-status-control { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 6px; background: #281d22; border: 1px solid #ff4655; padding: 4px; border-radius: 4px; }
+.gm-status-control small { font-size: 0.65rem; color: #ff4655; font-weight: bold; }
+.gm-status-control input { width: 60px !important; font-size: 0.85rem !important; padding: 2px !important; border-color: #ff4655 !important; }
+
 .btn-def-asterisk { background: #ff4655; color: #fff; border: none; border-radius: 50%; width: 18px; height: 18px; font-size: 0.75rem; font-weight: bold; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
 .defensa-tooltip { display: none; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); background: #18181b; border: 2px solid #ff4655; border-radius: 8px; padding: 12px; width: 260px; z-index: 100; box-shadow: 0 10px 20px rgba(0,0,0,0.8); text-align: left; margin-top: 5px; }
 .card-status:hover .defensa-tooltip, .defensa-tooltip.active { display: block; }
@@ -84,37 +83,36 @@ body { background-color: #121214; color: #e1e1e6; padding-bottom: 50px; }
 .defensa-item { display: flex; flex-direction: column; font-size: 0.75rem; color: #a8a8b3; }
 .defensa-item input { font-size: 0.85rem; padding: 2px 4px; border-color: #29292e; text-align: center; }
 
-/* ABAS DE NAVEGAÇÃO PRINCIPAL */
 nav.tabs { display: flex; background: #18181b; border-bottom: 1px solid #29292e; overflow-x: auto; }
 .tab-btn { background: transparent; border: none; color: #a8a8b3; padding: 14px 20px; cursor: pointer; font-size: 0.95rem; font-weight: bold; white-space: nowrap; transition: 0.2s; }
 .tab-btn.active, .tab-btn:hover { color: #fff; background: #202024; border-bottom: 3px solid #ff4655; }
 
-/* SUB-ABAS DE SKILLS E MAGIAS */
 .sub-tabs { display: flex; gap: 8px; margin-bottom: 15px; border-bottom: 2px solid #29292e; padding-bottom: 8px; }
 .sub-tab-btn { background: #202024; border: 1px solid #29292e; color: #a8a8b3; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; }
 .sub-tab-btn.active { background: #ff4655; color: #fff; border-color: #ff4655; }
 .sub-tab-content { display: none; }
 .sub-tab-content.active { display: block; }
 
-/* CONTAINER */
 .container { max-width: 1300px; margin: 20px auto; padding: 0 15px; }
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 h2 { margin: 15px 0 10px 0; border-left: 4px solid #ff4655; padding-left: 8px; font-size: 1.2rem; color: #fff; }
 
-/* ATRIBUTOS NA ABA */
+/* ATRIBUTOS NA ABA E BADGES DE DADOS (REQUISITO 1) */
 .atributos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-bottom: 20px; }
-.card-attr { background: #202024; border: 1px solid #29292e; padding: 10px; border-radius: 6px; text-align: center; display: flex; flex-direction: column; gap: 6px; }
+.card-attr { background: #202024; border: 1px solid #29292e; padding: 10px; border-radius: 6px; text-align: center; display: flex; flex-direction: column; gap: 6px; position: relative; }
 .card-attr label { font-size: 0.9rem; font-weight: bold; color: #e1e1e6; }
 .card-attr input { background: #121214; border: 1px solid #ff4655; color: #fff; text-align: center; font-size: 1.2rem; font-weight: bold; padding: 6px; border-radius: 4px; }
 
-/* PAINEL DE CONTAGEM DE PONTOS DE PERÍCIAS */
+.dice-badge { font-weight: bold; font-size: 0.8rem; padding: 2px 6px; border-radius: 4px; width: fit-content; margin: 0 auto; }
+.dice-badge.positive { background: #00ff88; color: #000; }
+.dice-badge.negative { background: #ff4655; color: #fff; }
+
 .pericias-tracker { background: #1f1f23; border: 1px solid #ff4655; border-radius: 6px; padding: 12px 20px; display: flex; gap: 25px; flex-wrap: wrap; margin-bottom: 15px; }
 .tracker-item { font-size: 0.95rem; color: #a8a8b3; }
 .tracker-item strong { color: #fff; font-size: 1.1rem; margin-left: 4px; }
 .tracker-item strong.highlight { color: #00ff88; font-size: 1.15rem; }
 
-/* PERÍCIAS GRID */
 .pericias-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
 .card-pericia { background: #202024; padding: 8px 12px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #29292e; transition: border 0.3s, background 0.3s; }
 .card-pericia.pericia-restrita { border: 1px solid #ff4655; background: #281d22; }
@@ -124,25 +122,24 @@ h2 { margin: 15px 0 10px 0; border-left: 4px solid #ff4655; padding-left: 8px; f
 .card-pericia-inputs span.bonus-tag { background: #29292e; color: #8a8a93; padding: 3px 6px; border-radius: 4px; font-weight: bold; font-size: 0.85rem; }
 .card-pericia-inputs span.bonus-tag.ativo { color: #00ff88; }
 
-/* PAINEL DE DESLOCAMENTO */
 .deslocamento-panel { background: #1f1f23; border: 1px solid #29292e; padding: 12px 20px; border-radius: 6px; margin-top: 20px; display: flex; align-items: center; gap: 12px; width: fit-content; }
 .deslocamento-label { font-weight: bold; color: #ff4655; font-size: 1.05rem; }
 .deslocamento-panel input { background: #121214; border: 1px solid #ff4655; color: #00ff88; font-size: 1.2rem; font-weight: bold; text-align: center; width: 80px; padding: 4px; border-radius: 4px; }
 
-/* MODAL POP-UP DE XP */
-.modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 1000; justify-content: center; align-items: center; }
+/* MODAIS (XP E EDIÇÃO DE ITENS) */
+.modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 1000; justify-content: center; align-items: center; }
 .modal-overlay.active { display: flex; }
-.modal-box { background: #202024; border: 2px solid #ff4655; border-radius: 8px; padding: 20px; width: 340px; max-width: 90%; text-align: center; display: flex; flex-direction: column; gap: 15px; }
+.modal-box { background: #202024; border: 2px solid #ff4655; border-radius: 8px; padding: 20px; width: 340px; max-width: 90%; text-align: center; display: flex; flex-direction: column; gap: 15px; max-height: 90vh; overflow-y: auto; }
+.modal-box-large { width: 550px; text-align: left; }
 .modal-box h3 { color: #ff4655; }
 .modal-quick-buttons { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
-.modal-box input { background: #121214; border: 1px solid #4d4d57; color: #fff; padding: 10px; border-radius: 4px; text-align: center; font-size: 1.1rem; font-weight: bold; }
-.modal-actions { display: flex; gap: 10px; justify-content: center; }
+.modal-box input, .modal-box textarea, .modal-box select { background: #121214; border: 1px solid #4d4d57; color: #fff; padding: 8px; border-radius: 4px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
 /* INVENTÁRIO & BUFFS */
 .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 @media (max-width: 900px) { .grid-2col { grid-template-columns: 1fr; } }
 
-/* BARRA DE CARGA COM SUPORTE A ERRO EM VERMELHO */
 .carga-bar { background: #1f1f23; padding: 12px 20px; border-radius: 6px; margin-bottom: 15px; border: 1px solid #29292e; transition: background 0.3s, border-color 0.3s; }
 .carga-bar h3 { color: #00ff88; font-size: 1.1rem; }
 .carga-extra-text { color: #00e1ff; font-weight: bold; }
@@ -158,220 +155,72 @@ h2 { margin: 15px 0 10px 0; border-left: 4px solid #ff4655; padding-left: 8px; f
 .creator-fields input, .item-creator textarea, .creator-fields select { background: #121214; border: 1px solid #4d4d57; color: #fff; padding: 8px; border-radius: 4px; }
 .checkbox-label { font-size: 0.85rem; display: flex; align-items: center; gap: 5px; cursor: pointer; }
 
-/* UPLOAD DE IMAGEM */
 .image-uploader { font-size: 0.85rem; display: flex; flex-direction: column; gap: 4px; }
 .image-uploader input { background: #121214; padding: 6px; border-radius: 4px; border: 1px solid #4d4d57; }
 
-/* SYSTEM DE BUFFS DO ITEM */
 .buffs-builder { background: #18181b; padding: 10px; border-radius: 4px; border: 1px solid #29292e; display: flex; flex-direction: column; gap: 8px; }
-.buff-input-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.buff-input-group select, .buff-input-group input { background: #121214; border: 1px solid #4d4d57; color: #fff; padding: 6px; border-radius: 4px; }
-.buffs-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
-.buff-tag { background: #ff4655; color: #fff; padding: 3px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; display: flex; align-items: center; gap: 6px; }
-.buff-tag span { cursor: pointer; color: #fff; font-weight: bold; }
+.buffs-builder label { font-size: 0.82rem; color: #a8a8b3; font-weight: bold; }
+.buff-input-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.buffs-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.buff-tag { background: #29292e; color: #00ff88; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; }
+.buff-tag span { color: #ff4655; cursor: pointer; margin-left: 4px; font-weight: bold; }
 
-/* CARDS DO INVENTÁRIO */
-.item-card { background: #202024; padding: 12px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #ff4655; border: 1px solid #29292e; display: flex; flex-direction: column; gap: 8px; }
-.item-card-header { display: flex; justify-content: space-between; align-items: center; font-weight: bold; flex-wrap: wrap; gap: 8px; }
-.item-card-header .item-inputs { display: flex; align-items: center; gap: 8px; }
-.item-card-header input[type="number"] { width: 60px; background: #121214; border: 1px solid #4d4d57; color: #fff; text-align: center; padding: 4px; border-radius: 4px; font-weight: bold; }
-.item-card-body { display: flex; gap: 12px; align-items: flex-start; }
-.item-img-preview { width: 70px; height: 70px; object-fit: cover; border-radius: 4px; border: 1px solid #4d4d57; background: #121214; }
-.item-card textarea { font-size: 0.85rem; background: #121214; border: 1px solid #29292e; flex: 1; }
-.item-card-actions { display: flex; gap: 8px; }
+.item-card { background: #202024; border: 1px solid #29292e; border-radius: 6px; padding: 12px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+.item-card-header { display: flex; justify-content: space-between; align-items: center; }
+.item-card-header span { font-weight: bold; color: #fff; }
+.item-inputs { display: flex; align-items: center; gap: 5px; font-size: 0.85rem; }
+.item-inputs input { width: 50px; text-align: center; background: #121214; border: 1px solid #29292e; color: #fff; border-radius: 4px; padding: 2px; }
+.item-card-body { display: flex; gap: 10px; align-items: flex-start; }
+.item-img-preview { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #ff4655; }
+.item-card-body textarea { flex: 1; background: #121214; border: 1px solid #29292e; color: #a8a8b3; padding: 6px; border-radius: 4px; font-size: 0.85rem; resize: vertical; }
+.item-card-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
-/* ANOTAÇÕES & EFEITOS */
-.add-effect { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; align-items: center; }
-.add-effect input, .add-effect select { background: #202024; border: 1px solid #4d4d57; color: #fff; padding: 8px; border-radius: 4px; }
-.effect-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
-.effect-item { background: #202024; padding: 12px; border-radius: 6px; display: flex; flex-direction: column; gap: 8px; border: 1px solid #29292e; border-left: 4px solid #00e1ff; }
-.effect-item-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
-.effect-item-details { font-size: 0.85rem; color: #a8a8b3; background: #121214; padding: 8px; border-radius: 4px; display: flex; gap: 15px; flex-wrap: wrap; }
-.effect-item-controls { display: flex; align-items: center; gap: 10px; }
-.effect-item-controls input { width: 60px; background: #121214; border: 1px solid #ff4655; color: #fff; text-align: center; padding: 4px; border-radius: 4px; font-weight: bold; }
-
-/* PAINEL DO MESTRE - CRIADOR DE EFEITOS */
-.gm-effects-builder { background: #202024; border: 1px solid #29292e; border-radius: 8px; padding: 20px; margin-top: 25px; }
-.gm-effects-builder h3 { color: #00e1ff; margin-bottom: 15px; border-left: 4px solid #00e1ff; padding-left: 8px; }
+/* GERENCIADOR DE EFEITOS GLOBAIS (MESTRE) */
+.gm-effects-builder { background: #18181b; border: 1px solid #29292e; border-radius: 8px; padding: 20px; margin-top: 20px; }
 .effects-grid-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 15px; }
-.effects-grid-form label { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: #a8a8b3; font-weight: bold; }
-.effects-grid-form input, .effects-grid-form select { background: #121214; border: 1px solid #4d4d57; color: #fff; padding: 8px; border-radius: 4px; }
+.effects-grid-form label { font-size: 0.82rem; color: #a8a8b3; font-weight: bold; display: flex; flex-direction: column; gap: 4px; }
+.effects-grid-form input, .effects-grid-form select { background: #121214; border: 1px solid #29292e; color: #fff; padding: 8px; border-radius: 4px; }
 
+.effect-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.effect-item { background: #202024; border: 1px solid #29292e; padding: 12px; border-radius: 6px; display: flex; flex-direction: column; gap: 6px; }
+.effect-item-header { display: flex; justify-content: space-between; align-items: center; }
+.effect-item-header strong { color: #ff4655; }
+.effect-item-controls { display: flex; align-items: center; gap: 8px; }
+.effect-item-controls input { width: 50px; background: #121214; border: 1px solid #29292e; color: #fff; text-align: center; border-radius: 4px; padding: 2px; }
+.effect-item-details { display: flex; gap: 15px; font-size: 0.82rem; color: #a8a8b3; flex-wrap: wrap; }
+
+/* SLOTS DE MAGIA GRID */
+.slots-container { display: flex; flex-direction: column; gap: 15px; }
+.multiclass-box { background: #18181b; border: 1px solid #29292e; padding: 12px; border-radius: 6px; }
+.multiclass-row { display: flex; align-items: center; gap: 10px; margin-top: 6px; font-size: 0.9rem; }
+.multiclass-row input { width: 60px; background: #121214; border: 1px solid #29292e; color: #fff; text-align: center; padding: 4px; border-radius: 4px; }
+
+.slots-actions { display: flex; gap: 10px; }
+.circulos-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.circulo-card { background: #202024; border: 1px solid #29292e; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px; text-align: center; }
+.circulo-info { font-weight: bold; color: #00ff88; font-size: 0.95rem; }
+.circulo-controles { display: flex; justify-content: center; align-items: center; gap: 8px; flex-wrap: wrap; }
+.btn-slot { background: #29292e; border: none; color: #fff; width: 28px; height: 28px; border-radius: 4px; font-weight: bold; cursor: pointer; }
+.btn-slot:hover { background: #ff4655; }
+.btn-fundir { background: #00e1ff; color: #000; border: none; font-size: 0.72rem; font-weight: bold; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-top: 4px; width: 100%; }
+.btn-fundir:disabled { background: #29292e; color: #666; cursor: not-allowed; }
+
+/* BLOCOS DE ANOTAÇÕES */
 .anotacoes-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-.anotacoes-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; }
-.bloco-card { background: #202024; padding: 15px; border-radius: 6px; border: 1px solid #29292e; display: flex; flex-direction: column; gap: 10px; }
-.bloco-card input { background: #121214; border: 1px solid #ff4655; color: #fff; padding: 8px; border-radius: 4px; font-weight: bold; }
-textarea { width: 100%; background: #202024; color: #fff; border: 1px solid #29292e; padding: 12px; border-radius: 6px; resize: vertical; font-size: 0.95rem; line-height: 1.4; }
+.anotacoes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
+.bloco-card { background: #202024; border: 1px solid #29292e; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.bloco-card input { background: #121214; border: 1px solid #ff4655; color: #fff; padding: 6px; border-radius: 4px; font-weight: bold; }
+.bloco-card textarea { background: #121214; border: 1px solid #29292e; color: #e1e1e6; padding: 8px; border-radius: 4px; resize: vertical; }
 
-/* BOTÕES */
-.btn-primary { background: #ff4655; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+/* BOTÕES GERAIS */
+button { cursor: pointer; transition: 0.2s; border: none; border-radius: 4px; font-weight: bold; }
+.btn-primary { background: #ff4655; color: #fff; padding: 8px 12px; }
 .btn-primary:hover { background: #e03e4d; }
-.btn-success { background: #28a745; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; }
-.btn-success:hover { background: #218838; }
-.btn-sub { background: #4d4d57; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
-.btn-danger { background: #cc2936; color: #fff; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; }
-
-/* --- SLOTS DE MAGIA --- */
-.slots-container {
-  background: rgba(18, 18, 24, 0.85);
-  border: 1px solid #333;
-  padding: 15px;
-  border-radius: 8px;
-  margin-top: 10px;
-}
-
-.multiclass-box {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 10px 15px;
-  border-radius: 6px;
-  margin-bottom: 15px;
-}
-
-.multiclass-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.multiclass-row input[type="number"] {
-  width: 60px;
-  text-align: center;
-  background: #121214;
-  border: 1px solid #4d4d57;
-  color: #fff;
-  padding: 4px;
-  border-radius: 4px;
-}
-
-.slots-actions {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 15px;
-}
-
-.btn-restaurar {
-  background: #28a745;
-  color: #fff;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.btn-zerar {
-  background: #dc3545;
-  color: #fff;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 5px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.circulos-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.circulo-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #1e1e26;
-  padding: 8px 12px;
-  border-radius: 6px;
-  border-left: 4px solid #00d2ff;
-}
-
-.circulo-info {
-  font-weight: bold;
-  min-width: 120px;
-}
-
-.circulo-controles {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.btn-slot {
-  background: #333;
-  color: #fff;
-  border: 1px solid #555;
-  width: 28px;
-  height: 28px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-}
-
-.btn-fundir {
-  background: #8a2be2;
-  color: #fff;
-  border: none;
-  padding: 4px 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.8rem;
-}
-
-.btn-fundir:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-/* BADGES DE DADOS EM CIMA DOS ATRIBUTOS */
-.card-attr {
-  position: relative;
-  padding-top: 18px !important;
-}
-
-.dice-badge {
-  position: absolute;
-  top: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-size: 0.75rem;
-  font-weight: bold;
-  border: 1px solid #ff4655;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.5);
-}
-
-.dice-badge.positive {
-  background: #00ff88;
-  color: #000;
-  border-color: #00ff88;
-}
-
-.dice-badge.negative {
-  background: #ff4655;
-  color: #fff;
-  border-color: #ff4655;
-}
-
-/* PAINEL DE CONTROLE DE SANIDADE DO MESTRE NA FICHA */
-.gm-san-box {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 6px;
-  padding-top: 4px;
-  border-top: 1px dashed #ff4655;
-}
-
-.gm-san-box small {
-  font-size: 0.68rem;
-  color: #00e1ff;
-  font-weight: bold;
-}
-
-.gm-san-box input {
-  width: 50px !important;
-  font-size: 0.85rem !important;
-  padding: 2px !important;
-  border-color: #00e1ff !important;
-}
+.btn-success { background: #00ff88; color: #000; padding: 8px 12px; }
+.btn-success:hover { background: #00cc6d; }
+.btn-danger { background: #ff2a3a; color: #fff; padding: 6px 10px; font-size: 0.8rem; }
+.btn-danger:hover { background: #d61c2b; }
+.btn-sub { background: #202024; border: 1px solid #29292e; color: #a8a8b3; padding: 6px 10px; font-size: 0.85rem; }
+.btn-sub:hover { color: #fff; border-color: #ff4655; }
+.btn-restaurar { background: #00e1ff; color: #000; padding: 8px 12px; }
+.btn-zerar { background: #ff2a3a; color: #fff; padding: 8px 12px; }

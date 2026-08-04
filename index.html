@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sistema de Fichas RPG</title>
-  <link rel="stylesheet" href="style.css?v=102">
+  <link rel="stylesheet" href="style.css?v=103">
   
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -201,35 +201,54 @@
     <section class="status-section">
       <h2>{ STATUS RECURSOS }</h2>
       <div class="status-grid">
+        <!-- VIDA (PV) -->
         <div class="card-status">
           <label>Vida (PV)</label>
           <div class="inline-inputs">
             <input type="number" id="pv-atual" value="22" onchange="salvarDados()"> / <input type="number" id="pv-max" value="22" readonly>
           </div>
+          <div class="gm-status-control" style="display:none;">
+            <small>Red. Perm. Mestre:</small>
+            <input type="number" id="pv-perm-mod" value="0" min="0" onchange="atualizarStatusPermMestre('pv', this.value)">
+          </div>
         </div>
+
+        <!-- SANIDADE (SAN) -->
         <div class="card-status">
           <label>Sanidade (SAN)</label>
           <div class="inline-inputs">
             <input type="number" id="san-atual" value="18" onchange="salvarDados()"> / <input type="number" id="san-max" value="18" readonly>
           </div>
-          <!-- REQUISITO 4: Painel exclusivo visível somente quando o mestre acessa -->
-          <div id="gm-san-control" class="gm-san-box" style="display:none;">
-            <small>Redução Perm. Mestre:</small>
-            <input type="number" id="san-perm-mod" value="0" min="0" onchange="atualizarSanidadePermMestre(this.value)">
+          <div class="gm-status-control" style="display:none;">
+            <small>Red. Perm. Mestre:</small>
+            <input type="number" id="san-perm-mod" value="0" min="0" onchange="atualizarStatusPermMestre('san', this.value)">
           </div>
         </div>
+
+        <!-- ESFORÇO (PE) -->
         <div class="card-status">
           <label>Esforço (PE)</label>
           <div class="inline-inputs">
             <input type="number" id="pe-atual" value="27" onchange="salvarDados()"> / <input type="number" id="pe-max" value="31" readonly>
           </div>
+          <div class="gm-status-control" style="display:none;">
+            <small>Red. Perm. Mestre:</small>
+            <input type="number" id="pe-perm-mod" value="0" min="0" onchange="atualizarStatusPermMestre('pe', this.value)">
+          </div>
         </div>
+
+        <!-- MANA (MA) -->
         <div class="card-status">
           <label>Mana (MA)</label>
           <div class="inline-inputs">
             <input type="number" id="ma-atual" value="49" onchange="salvarDados()"> / <input type="number" id="ma-max" value="49" readonly>
           </div>
+          <div class="gm-status-control" style="display:none;">
+            <small>Red. Perm. Mestre:</small>
+            <input type="number" id="ma-perm-mod" value="0" min="0" onchange="atualizarStatusPermMestre('ma', this.value)">
+          </div>
         </div>
+
         <div class="card-status">
           <label>
             Defesa (DEF) 
@@ -280,7 +299,6 @@
       <div id="tab-atributos" class="tab-content active">
         <h2>{ ATRIBUTOS }</h2>
         
-        <!-- REQUISITO 2: Badges visuais no topo dos cards de atributos indicando quantos dados rolar -->
         <div class="atributos-grid">
           <div class="card-attr">
             <span class="dice-badge positive" id="dice-tag-forca">1d</span>
@@ -415,7 +433,6 @@
             <input type="file" id="item-img-input" accept="image/*">
           </div>
 
-          <!-- REQUISITO 3: Checkbox para tornar o bônus em 'Receber por Turno' -->
           <div class="buffs-builder">
             <label>Adicionar Atributo, Perícia ou Status ao Item:</label>
             <div class="buff-input-group">
@@ -479,6 +496,57 @@
       <div class="modal-actions">
         <button type="button" class="btn-success" onclick="confirmarGanhoXP()">Confirmar</button>
         <button type="button" class="btn-danger" onclick="fecharModalXP()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DE EDIÇÃO DE ITEM (REQUISITO 3) -->
+  <div id="modal-edit-item" class="modal-overlay">
+    <div class="modal-box modal-box-large">
+      <h3>Editar Item</h3>
+      <div class="creator-fields">
+        <label style="width:100%;">Nome:
+          <input type="text" id="edit-item-nome">
+        </label>
+        <label>Qtd:
+          <input type="number" id="edit-item-qtd" min="1">
+        </label>
+        <label>Peso (Kg):
+          <input type="number" id="edit-item-carga" min="0" step="0.5">
+        </label>
+        <label class="checkbox-label" style="margin-top:20px;">
+          <input type="checkbox" id="edit-item-is-mochila"> É Mochila?
+        </label>
+        <label>+ Carga Extra:
+          <input type="number" id="edit-item-bonus-carga" min="0">
+        </label>
+      </div>
+
+      <label style="text-align:left; color:#a8a8b3; font-size:0.85rem;">Descrição:
+        <textarea id="edit-item-desc" rows="3"></textarea>
+      </label>
+
+      <div class="image-uploader">
+        <label>Alterar Imagem do Item:</label>
+        <input type="file" id="edit-item-img-input" accept="image/*">
+      </div>
+
+      <div class="buffs-builder">
+        <label>Gerenciar Bônus/Efeitos do Item:</label>
+        <div class="buff-input-group">
+          <select id="edit-buff-alvo"></select>
+          <input type="number" id="edit-buff-valor" value="1" style="width:70px;">
+          <label class="checkbox-label" style="color:#00ff88;">
+            <input type="checkbox" id="edit-buff-is-turno"> É por turno?
+          </label>
+          <button type="button" class="btn-sub" onclick="adicionarBuffItemEditTemp()">+ Adicionar</button>
+        </div>
+        <div class="buffs-tags" id="lista-edit-buffs-temp" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:15px;">
+        <button type="button" class="btn-success" onclick="salvarEdicaoItem()">Salvar Alterações</button>
+        <button type="button" class="btn-danger" onclick="fecharModalEditItem()">Cancelar</button>
       </div>
     </div>
   </div>

@@ -34,11 +34,17 @@ let equipamentos = [];
 let efeitos = [];
 let blocosAnotacoes = [];
 let buffsTempItem = [];
+let buffsTempEditItem = [];
 let buffsTempGmEffect = [];
 let efeitosGlobaisSalvos = {};
 let defesasEspecificas = { perfuracao:0, queimadura:0, corte:0, impacto:0, balistico:0, eletricidade:0, fogo:0, frio:0, acido:0, veneno:0, magico:0 };
 let expAtual = 0;
-let modPermSanMestre = 0; // REQUISITO 4: Modificador permanente de Sanidade do Mestre
+
+// REQUISITO 2: Modificadores permanentes do Mestre para todos os status
+let modPermMestre = { pv: 0, san: 0, pe: 0, ma: 0 };
+
+// VARIÁVEL DE APOIO PARA EDITAR ITEM
+let itemEditando = null;
 
 // --- DADOS DOS SLOTS DE MAGIA ---
 let slotsAtuais = [0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -83,14 +89,14 @@ window.onload = () => {
   const telaFicha = document.getElementById('screen-sheet');
 
   telaFicha.addEventListener('change', (e) => {
-    if (e.target.closest('#modal-xp')) return;
+    if (e.target.closest('#modal-xp') || e.target.closest('#modal-edit-item')) return;
     if (e.target.tagName !== 'TEXTAREA') {
       recalcularTudo(true);
     }
   });
 
   telaFicha.addEventListener('input', (e) => {
-    if (e.target.closest('#modal-xp')) return;
+    if (e.target.closest('#modal-xp') || e.target.closest('#modal-edit-item')) return;
     clearTimeout(timerDebounce);
     timerDebounce = setTimeout(() => {
       recalcularTudo(true);
@@ -135,7 +141,7 @@ function entrarComoJogador() {
   idFichaAtual = inputID;
   éMestre = false;
   document.getElementById('badge-gm-view').style.display = 'none';
-  document.getElementById('gm-san-control').style.display = 'none'; // Esconde campo do mestre
+  document.querySelectorAll('.gm-status-control').forEach(el => el.style.display = 'none');
   document.getElementById('label-ficha-ativa').innerText = `Ficha: ${idFichaAtual}`;
 
   carregarFichaEConectar();
@@ -192,7 +198,7 @@ function mestreAbrirFicha(idFicha) {
   idFichaAtual = idFicha;
   éMestre = true;
   document.getElementById('badge-gm-view').style.display = 'inline-block';
-  document.getElementById('gm-san-control').style.display = 'flex'; // Exibe controle de SAN do Mestre
+  document.querySelectorAll('.gm-status-control').forEach(el => el.style.display = 'flex');
   document.getElementById('label-ficha-ativa').innerText = `Editando Ficha: ${idFichaAtual}`;
 
   carregarFichaEConectar();
@@ -229,8 +235,13 @@ function aplicarDadosFicha(data) {
   atualizarCampoSeInativo('nome', data.nome || idFichaAtual);
   atualizarCampoSeInativo('nivel', data.nivel || 1);
   expAtual = data.expAtual || 0;
-  modPermSanMestre = data.modPermSanMestre || 0;
-  atualizarCampoSeInativo('san-perm-mod', modPermSanMestre);
+  
+  // REQUISITO 2: Carrega modificadores permanentes do Mestre para os 4 status
+  modPermMestre = data.modPermMestre || { pv: 0, san: (data.modPermSanMestre || 0), pe: 0, ma: 0 };
+  atualizarCampoSeInativo('pv-perm-mod', modPermMestre.pv || 0);
+  atualizarCampoSeInativo('san-perm-mod', modPermMestre.san || 0);
+  atualizarCampoSeInativo('pe-perm-mod', modPermMestre.pe || 0);
+  atualizarCampoSeInativo('ma-perm-mod', modPermMestre.ma || 0);
   
   atualizarCampoSeInativo('nex', data.nex || '20%');
   atualizarCampoSeInativo('idade', data.idade || '');
@@ -298,7 +309,7 @@ function salvarDados() {
     nome: document.getElementById('nome').value,
     nivel: document.getElementById('nivel').value,
     expAtual,
-    modPermSanMestre,
+    modPermMestre,
     nex: document.getElementById('nex').value,
     idade: document.getElementById('idade').value,
     traco: document.getElementById('traco').value,
@@ -430,7 +441,11 @@ function confirmarGanhoXP() {
 
 // --- BUFFS DE ITENS & EFEITOS ---
 function popularOpcoesBuff() {
-  const selects = [document.getElementById('buff-alvo'), document.getElementById('gm-effect-buff-alvo')];
+  const selects = [
+    document.getElementById('buff-alvo'), 
+    document.getElementById('edit-buff-alvo'), 
+    document.getElementById('gm-effect-buff-alvo')
+  ];
   const htmlOptions = `
     <optgroup label="Atributos">
       <option value="attr-forca">Força</option>
@@ -471,7 +486,6 @@ function popularOpcoesBuff() {
   selects.forEach(s => { if (s) s.innerHTML = htmlOptions; });
 }
 
-// REQUISITO 3: Adicionada flag isPorTurno para transformar qualquer atributo/perícia em bônus por turno
 function adicionarBuffItemTemp() {
   const select = document.getElementById('buff-alvo');
   const alvoId = select.value;
@@ -642,9 +656,9 @@ function calcularEfeitoValorEscalado(valorBase, tipoEscala, fator, nivel) {
   return vBase;
 }
 
-// REQUISITO 4: Alterar o modificador permanente da Sanidade pelo Mestre
-function atualizarSanidadePermMestre(val) {
-  modPermSanMestre = parseInt(val) || 0;
+// REQUISITO 2: Alterar os modificadores permanentes de qualquer status pelo Mestre
+function atualizarStatusPermMestre(recurso, val) {
+  modPermMestre[recurso] = parseInt(val) || 0;
   recalcularTudo();
 }
 
@@ -662,7 +676,7 @@ function recalcularTudo(deveSalvar = true) {
   let carismaBase = parseFloat(document.getElementById('attr-carisma').value) || 0;
   let sorteBase = parseFloat(document.getElementById('attr-sorte').value) || 0;
 
-  // REQUISITO 2: Atualização dos badges visuais indicando quantidade de dados a rolar
+  // REQUISITO 1: Atualização dos badges visuais permitindo dados negativos progressivos (-1d, -2d, -3d, etc.)
   const listaAtributosBase = [
     { id: 'forca', val: forcaBase },
     { id: 'agilidade', val: agilidadeBase },
@@ -681,7 +695,8 @@ function recalcularTudo(deveSalvar = true) {
         badge.innerText = `${dadosCount}d`;
         badge.className = "dice-badge positive";
       } else {
-        badge.innerText = `-1d`;
+        let dadosNegativos = -1 - Math.floor((9 - item.val) / 2);
+        badge.innerText = `${dadosNegativos}d`;
         badge.className = "dice-badge negative";
       }
     }
@@ -750,14 +765,19 @@ function recalcularTudo(deveSalvar = true) {
     }
   });
 
-  document.getElementById('pv-max').value = 10 + vigor + bonusClasse.pv + (buffsAcumulados['status-pv'] || 0);
+  // REQUISITO 2: Cálculo dos Status Máximos descontando as reduções permanentes do Mestre
+  let pvMaxCalc = 10 + vigor + bonusClasse.pv + (buffsAcumulados['status-pv'] || 0) - (modPermMestre.pv || 0);
+  document.getElementById('pv-max').value = Math.max(0, pvMaxCalc);
   
-  // REQUISITO 4: Sanidade Máxima descontando o Modificador Permanente do Mestre
-  let sanMaxCalculada = 4 + presenca + bonusClasse.san + (buffsAcumulados['status-san'] || 0) - modPermSanMestre;
-  document.getElementById('san-max').value = Math.max(0, sanMaxCalculada);
+  let sanMaxCalc = 4 + presenca + bonusClasse.san + (buffsAcumulados['status-san'] || 0) - (modPermMestre.san || 0);
+  document.getElementById('san-max').value = Math.max(0, sanMaxCalc);
 
-  document.getElementById('pe-max').value = 5 + agilidade + vigor + bonusClasse.pe + (buffsAcumulados['status-pe'] || 0);
-  document.getElementById('ma-max').value = vigor + presenca + sorte + inteligencia + bonusClasse.ma + (buffsAcumulados['status-ma'] || 0);
+  let peMaxCalc = 5 + agilidade + vigor + bonusClasse.pe + (buffsAcumulados['status-pe'] || 0) - (modPermMestre.pe || 0);
+  document.getElementById('pe-max').value = Math.max(0, peMaxCalc);
+
+  let maMaxCalc = vigor + presenca + sorte + inteligencia + bonusClasse.ma + (buffsAcumulados['status-ma'] || 0) - (modPermMestre.ma || 0);
+  document.getElementById('ma-max').value = Math.max(0, maMaxCalc);
+
   document.getElementById('eva-val').value = agilidade + bonusClasse.eva + (buffsAcumulados['status-eva'] || 0);
   document.getElementById('def-val').value = Math.floor(vigor / 2) + bonusClasse.def + (buffsAcumulados['status-def'] || 0);
 
@@ -780,7 +800,7 @@ function recalcularTudo(deveSalvar = true) {
   let deslocamentoFinal = Math.floor(agilidade / 2) + (buffsAcumulados['status-deslocamento'] || 0);
   document.getElementById('deslocamento-val').value = `${Math.max(0, deslocamentoFinal)}m`;
 
-  // REQUISITO 1: Perícias = Inteligência + Bônus de Classe + Level - 1
+  // Perícias = Inteligência + Bônus de Classe + Level - 1
   let ptsLivresTotais = inteligencia + bonusClasse.ptsLivre + (nivel - 1);
   let ptsLivresGastos = 0;
   let ptsClasseTotais = 0;
@@ -958,6 +978,7 @@ function renderItens() {
         </div>
         <div class="item-card-actions">
           <button class="btn-sub" onclick="equiparItem(${item.id})">Equipar ➔</button>
+          <button class="btn-primary" onclick="abrirModalEditItem(${item.id}, 'inv')">✏️ Editar</button>
           <button class="btn-danger" onclick="removerItem(${item.id}, 'inv')">Deletar</button>
         </div>
       </div>
@@ -984,11 +1005,103 @@ function renderItens() {
         </div>
         <div class="item-card-actions">
           <button class="btn-sub" onclick="desequiparItem(${item.id})">⬅ Desequipar</button>
+          <button class="btn-primary" onclick="abrirModalEditItem(${item.id}, 'eqp')">✏️ Editar</button>
           <button class="btn-danger" onclick="removerItem(${item.id}, 'eqp')">Deletar</button>
         </div>
       </div>
     `;
   });
+}
+
+// REQUISITO 3: Modal de Edição de Itens
+function abrirModalEditItem(id, local) {
+  let lista = local === 'inv' ? inventario : equipamentos;
+  let item = lista.find(i => i.id === id);
+  if (!item) return;
+
+  itemEditando = { id, local };
+
+  document.getElementById('edit-item-nome').value = item.nome || '';
+  document.getElementById('edit-item-qtd').value = item.qtd || 1;
+  document.getElementById('edit-item-carga').value = item.carga || 0;
+  document.getElementById('edit-item-is-mochila').checked = !!item.mochila;
+  document.getElementById('edit-item-bonus-carga').value = item.bonusCarga || 0;
+  document.getElementById('edit-item-desc').value = item.desc || '';
+  document.getElementById('edit-item-img-input').value = '';
+
+  buffsTempEditItem = item.buffs ? JSON.parse(JSON.stringify(item.buffs)) : [];
+  renderBuffsEditTemp();
+
+  document.getElementById('modal-edit-item').classList.add('active');
+}
+
+function fecharModalEditItem() {
+  document.getElementById('modal-edit-item').classList.remove('active');
+  itemEditando = null;
+}
+
+function adicionarBuffItemEditTemp() {
+  const select = document.getElementById('edit-buff-alvo');
+  const alvoId = select.value;
+  const alvoNome = select.options[select.selectedIndex].text;
+  const val = parseInt(document.getElementById('edit-buff-valor').value) || 0;
+  const isPorTurno = document.getElementById('edit-buff-is-turno').checked;
+
+  if (val === 0) return;
+  buffsTempEditItem.push({ alvoId, alvoNome, val, isPorTurno });
+  renderBuffsEditTemp();
+}
+
+function renderBuffsEditTemp() {
+  const container = document.getElementById('lista-edit-buffs-temp');
+  if (!container) return;
+  container.innerHTML = buffsTempEditItem.map((b, idx) => `
+    <span class="buff-tag">${b.alvoNome}: ${b.val > 0 ? '+' : ''}${b.val} ${b.isPorTurno ? '/Turno' : ''} <span onclick="removerBuffEditTemp(${idx})">×</span></span>
+  `).join('');
+}
+
+function removerBuffEditTemp(idx) {
+  buffsTempEditItem.splice(idx, 1);
+  renderBuffsEditTemp();
+}
+
+function salvarEdicaoItem() {
+  if (!itemEditando) return;
+
+  let lista = itemEditando.local === 'inv' ? inventario : equipamentos;
+  let item = lista.find(i => i.id === itemEditando.id);
+
+  if (!item) return fecharModalEditItem();
+
+  let nome = document.getElementById('edit-item-nome').value.trim();
+  if (!nome) return alert("O nome do item não pode ser vazio!");
+
+  item.nome = nome;
+  item.qtd = Math.max(1, parseInt(document.getElementById('edit-item-qtd').value) || 1);
+  item.carga = Math.max(0, parseFloat(document.getElementById('edit-item-carga').value) || 0);
+  item.mochila = document.getElementById('edit-item-is-mochila').checked;
+  item.bonusCarga = Math.max(0, parseFloat(document.getElementById('edit-item-bonus-carga').value) || 0);
+  item.desc = document.getElementById('edit-item-desc').value;
+  item.buffs = [...buffsTempEditItem];
+
+  let fileInput = document.getElementById('edit-item-img-input');
+
+  const concluirSalvamento = () => {
+    fecharModalEditItem();
+    renderItens();
+    recalcularTudo();
+  };
+
+  if (fileInput && fileInput.files && fileInput.files[0]) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      item.imagem = e.target.result;
+      concluirSalvamento();
+    };
+    reader.readAsDataURL(fileInput.files[0]);
+  } else {
+    concluirSalvamento();
+  }
 }
 
 function alterarQtdItem(id, local, novaQtd) {
@@ -1212,7 +1325,6 @@ function mestrePassarTurnoGeral() {
   });
 }
 
-// REQUISITO 3: Aplicar bônus de turnos vindos dos itens equipados
 function processarPassagemDeTurnoLocal() {
   equipamentos.forEach(item => {
     let mult = parseInt(item.qtd) || 1;
