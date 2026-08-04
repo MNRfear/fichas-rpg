@@ -322,3 +322,56 @@ textarea { width: 100%; background: #202024; color: #fff; border: 1px solid #292
   opacity: 0.4;
   cursor: not-allowed;
 }
+/* BADGES DE DADOS EM CIMA DOS ATRIBUTOS */
+.card-attr {
+  position: relative;
+  padding-top: 18px !important;
+}
+
+.dice-badge {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  border: 1px solid #ff4655;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+}
+
+.dice-badge.positive {
+  background: #00ff88;
+  color: #000;
+  border-color: #00ff88;
+}
+
+.dice-badge.negative {
+  background: #ff4655;
+  color: #fff;
+  border-color: #ff4655;
+}
+
+/* PAINEL DE CONTROLE DE SANIDADE DO MESTRE NA FICHA */
+.gm-san-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 6px;
+  padding-top: 4px;
+  border-top: 1px dashed #ff4655;
+}
+
+.gm-san-box small {
+  font-size: 0.68rem;
+  color: #00e1ff;
+  font-weight: bold;
+}
+
+.gm-san-box input {
+  width: 50px !important;
+  font-size: 0.85rem !important;
+  padding: 2px !important;
+  border-color: #00e1ff !important;
+}

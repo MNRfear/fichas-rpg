@@ -4,7 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sistema de Fichas RPG</title>
-  <link rel="stylesheet" href="style.css?v=101">
+  <link rel="stylesheet" href="style.css?v=102">
+  
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="script.js" defer></script>
 </head>
 <body>
 
@@ -46,11 +51,9 @@
     </div>
     
     <h2>{ FICHAS DOS JOGADORES }</h2>
-    <div class="gm-cards-grid" id="gm-cards-list">
-      <!-- Cards dos jogadores serão injetados aqui via JS -->
-    </div>
+    <div class="gm-cards-grid" id="gm-cards-list"></div>
 
-    <!-- ÁREA DE CRIAÇÃO E GERENCIAMENTO DE EFEITOS DE STATUS DO MESTRE -->
+    <!-- GERENCIADOR DE EFEITOS GLOBAIS -->
     <div class="gm-effects-builder">
       <h3>{ GERENCIADOR DE EFEITOS DE STATUS (BANCO DE DADOS) }</h3>
       <div class="effects-grid-form">
@@ -209,6 +212,11 @@
           <div class="inline-inputs">
             <input type="number" id="san-atual" value="18" onchange="salvarDados()"> / <input type="number" id="san-max" value="18" readonly>
           </div>
+          <!-- REQUISITO 4: Painel exclusivo visível somente quando o mestre acessa -->
+          <div id="gm-san-control" class="gm-san-box" style="display:none;">
+            <small>Redução Perm. Mestre:</small>
+            <input type="number" id="san-perm-mod" value="0" min="0" onchange="atualizarSanidadePermMestre(this.value)">
+          </div>
         </div>
         <div class="card-status">
           <label>Esforço (PE)</label>
@@ -229,7 +237,6 @@
           </label>
           <input type="number" id="def-val" value="6" readonly>
           
-          <!-- TOOLTIP POPUP DE DEFESAS ESPECÍFICAS -->
           <div class="defensa-tooltip" id="defensa-tooltip-box">
             <h4>Defesas Específicas / Resistências</h4>
             <div class="defensa-grid">
@@ -272,14 +279,44 @@
       <!-- ABA ATRIBUTOS & PERÍCIAS -->
       <div id="tab-atributos" class="tab-content active">
         <h2>{ ATRIBUTOS }</h2>
+        
+        <!-- REQUISITO 2: Badges visuais no topo dos cards de atributos indicando quantos dados rolar -->
         <div class="atributos-grid">
-          <div class="card-attr"><label>Força</label><input type="number" id="attr-forca" value="10" onchange="recalcularTudo()"></div>
-          <div class="card-attr"><label>Agilidade</label><input type="number" id="attr-agilidade" value="10" onchange="recalcularTudo()"></div>
-          <div class="card-attr"><label>Vigor</label><input type="number" id="attr-vigor" value="10" onchange="recalcularTudo()"></div>
-          <div class="card-attr"><label>Inteligência</label><input type="number" id="attr-inteligencia" value="10" onchange="recalcularTudo()"></div>
-          <div class="card-attr"><label>Presença</label><input type="number" id="attr-presenca" value="10" onchange="recalcularTudo()"></div>
-          <div class="card-attr"><label>Carisma</label><input type="number" id="attr-carisma" value="10" onchange="recalcularTudo()"></div>
-          <div class="card-attr"><label>Sorte</label><input type="number" id="attr-sorte" value="10" onchange="recalcularTudo()"></div>
+          <div class="card-attr">
+            <span class="dice-badge positive" id="dice-tag-forca">1d</span>
+            <label>Força</label>
+            <input type="number" id="attr-forca" value="10" onchange="recalcularTudo()">
+          </div>
+          <div class="card-attr">
+            <span class="dice-badge positive" id="dice-tag-agilidade">1d</span>
+            <label>Agilidade</label>
+            <input type="number" id="attr-agilidade" value="10" onchange="recalcularTudo()">
+          </div>
+          <div class="card-attr">
+            <span class="dice-badge positive" id="dice-tag-vigor">1d</span>
+            <label>Vigor</label>
+            <input type="number" id="attr-vigor" value="10" onchange="recalcularTudo()">
+          </div>
+          <div class="card-attr">
+            <span class="dice-badge positive" id="dice-tag-inteligencia">1d</span>
+            <label>Inteligência</label>
+            <input type="number" id="attr-inteligencia" value="10" onchange="recalcularTudo()">
+          </div>
+          <div class="card-attr">
+            <span class="dice-badge positive" id="dice-tag-presenca">1d</span>
+            <label>Presença</label>
+            <input type="number" id="attr-presenca" value="10" onchange="recalcularTudo()">
+          </div>
+          <div class="card-attr">
+            <span class="dice-badge positive" id="dice-tag-carisma">1d</span>
+            <label>Carisma</label>
+            <input type="number" id="attr-carisma" value="10" onchange="recalcularTudo()">
+          </div>
+          <div class="card-attr">
+            <span class="dice-badge positive" id="dice-tag-sorte">1d</span>
+            <label>Sorte</label>
+            <input type="number" id="attr-sorte" value="10" onchange="recalcularTudo()">
+          </div>
         </div>
 
         <div class="pericias-tracker">
@@ -320,42 +357,37 @@
         </div>
 
         <div id="subtab-skills-sub" class="sub-tab-content active">
-          <textarea id="skills-texto" rows="12" placeholder="Digite suas skills..." onchange="salvarDados()"></textarea>
+          <textarea id="skills-texto" rows="12" placeholder="Digite suas habilidades aqui..." onchange="salvarDados()"></textarea>
         </div>
         <div id="subtab-feiticos-sub" class="sub-tab-content">
-          <textarea id="feiticos-texto" rows="12" placeholder="Digite seus feitiços..." onchange="salvarDados()"></textarea>
+          <textarea id="feiticos-texto" rows="12" placeholder="Digite seus feitiços aqui..." onchange="salvarDados()"></textarea>
         </div>
         <div id="subtab-rituais-sub" class="sub-tab-content">
-          <textarea id="rituais-texto" rows="12" placeholder="Digite seus rituais..." onchange="salvarDados()"></textarea>
+          <textarea id="rituais-texto" rows="12" placeholder="Digite seus rituais aqui..." onchange="salvarDados()"></textarea>
         </div>
+        
         <div id="subtab-slots-sub" class="sub-tab-content">
           <div class="slots-container">
-            <h3>Gerenciamento de Slots de Magia</h3>
-            
             <div class="multiclass-box">
-              <h4>Multiclasse Mágica</h4>
+              <label><input type="checkbox" id="classe-magica-1" onchange="recalcularSlotsMagia()"> Classe Mágica Secundária</label>
               <div class="multiclass-row">
-                <label>
-                  <input type="checkbox" id="classe-magica-1" onchange="recalcularSlotsMagia()"> Classe Adicional 1 é Mágica
-                </label>
-                <span>Nível:</span>
+                <label>Nível na Classe:</label>
                 <input type="number" id="nv-classe-magica-1" value="0" min="0" max="20" onchange="recalcularSlotsMagia()">
               </div>
+              <br>
+              <label><input type="checkbox" id="classe-magica-2" onchange="recalcularSlotsMagia()"> Terceira Classe Mágica</label>
               <div class="multiclass-row">
-                <label>
-                  <input type="checkbox" id="classe-magica-2" onchange="recalcularSlotsMagia()"> Classe Adicional 2 é Mágica
-                </label>
-                <span>Nível:</span>
+                <label>Nível na Classe:</label>
                 <input type="number" id="nv-classe-magica-2" value="0" min="0" max="20" onchange="recalcularSlotsMagia()">
               </div>
             </div>
 
             <div class="slots-actions">
-              <button type="button" class="btn-restaurar" onclick="restaurarSlotsDescanso()">💤 Descanso (Restaurar Slots)</button>
-              <button type="button" class="btn-zerar" onclick="zerarTodosSlots()">🗑️ Zerar Todos os Slots</button>
+              <button type="button" class="btn-restaurar" onclick="restaurarSlotsDescanso()">Restaurar Slots (Descanso)</button>
+              <button type="button" class="btn-zerar" onclick="zerarTodosSlots()">Zerar Todos</button>
             </div>
 
-            <div class="circulos-grid" id="circulos-grid"></div>
+            <div id="circulos-grid" class="circulos-grid"></div>
           </div>
         </div>
       </div>
@@ -363,111 +395,93 @@
       <!-- ABA INVENTÁRIO -->
       <div id="tab-inventario" class="tab-content">
         <div class="carga-bar" id="carga-bar-container">
-          <h3>Carga Atual: <span id="carga-atual">0</span> / <span id="carga-base-max">0</span> Kg <span class="carga-extra-text" id="carga-extra-display">+ 0 Kg</span></h3>
-          <small id="alerta-mochila-excesso" class="alerta-erro" style="display:none;">⚠ Peso total das mochilas equipadas excede sua capacidade de Carga Base!</small>
+          <h3>Capacidade de Carga: <span id="carga-atual">0</span> / <span id="carga-base-max">10</span> Kg <span class="carga-extra-text" id="carga-extra-display">+ 0 Kg</span></h3>
+          <span class="alerta-erro" id="alerta-mochila-excesso" style="display:none;">⚠️ Suas mochilas ultrapassam sua Força Máxima!</span>
         </div>
 
         <div class="item-creator">
           <h3>Criar Novo Item</h3>
           <div class="creator-fields">
             <input type="text" id="item-nome" placeholder="Nome do Item">
-            <input type="number" id="item-qtd" value="1" placeholder="Qtd">
-            <input type="number" id="item-carga" value="1" step="0.5" placeholder="Carga (Kg)">
-            <label class="checkbox-label">
-              <input type="checkbox" id="item-is-mochila"> É Mochila/Bolsa?
-            </label>
-            <input type="number" id="item-bonus-carga" value="0" placeholder="+Carga Extra">
+            <input type="number" id="item-qtd" value="1" min="1" placeholder="Qtd">
+            <input type="number" id="item-carga" value="1" min="0" step="0.5" placeholder="Peso (Kg)">
+            <label class="checkbox-label"><input type="checkbox" id="item-is-mochila"> É Mochila?</label>
+            <input type="number" id="item-bonus-carga" value="0" min="0" placeholder="+ Carga Extra">
           </div>
+          <textarea id="item-desc" rows="2" placeholder="Descrição ou propriedades do item..."></textarea>
           
-          <textarea id="item-desc" rows="2" placeholder="Descrição do item..."></textarea>
-
-          <!-- EFEITO DE TURNO DO ITEM -->
-          <div class="creator-fields" style="background:#18181b; padding:8px; border-radius:4px; border:1px solid #29292e;">
-            <label class="checkbox-label"><strong>Efeito Continuo por Turno?</strong></label>
-            <select id="item-turno-recurso">
-              <option value="none">Nenhum</option>
-              <option value="pv">Vida (PV)</option>
-              <option value="pe">Esforço (PE)</option>
-              <option value="san">Sanidade (SAN)</option>
-              <option value="ma">Mana (MA)</option>
-            </select>
-            <input type="number" id="item-turno-valor" value="0" placeholder="Qtd/Turno (+ ou -)">
+          <div class="image-uploader">
+            <label>Imagem do Item (Opcional):</label>
+            <input type="file" id="item-img-input" accept="image/*">
           </div>
 
+          <!-- REQUISITO 3: Checkbox para tornar o bônus em 'Receber por Turno' -->
           <div class="buffs-builder">
-            <label>Adicionar Buff ao Item:</label>
+            <label>Adicionar Atributo, Perícia ou Status ao Item:</label>
             <div class="buff-input-group">
               <select id="buff-alvo"></select>
               <input type="number" id="buff-valor" value="1" style="width:70px;">
-              <button type="button" class="btn-sub" onclick="adicionarBuffItemTemp()">+ Buff</button>
+              <label class="checkbox-label" style="color:#00ff88;">
+                <input type="checkbox" id="buff-is-turno"> É por turno?
+              </label>
+              <button type="button" class="btn-sub" onclick="adicionarBuffItemTemp()">+ Adicionar Bônus</button>
             </div>
             <div class="buffs-tags" id="lista-buffs-temp"></div>
           </div>
 
-          <div class="image-uploader">
-            <label>Imagem do Item:</label>
-            <input type="file" id="item-img-input" accept="image/*">
-          </div>
-
-          <button type="button" class="btn-primary" onclick="criarItem()">Criar Item</button>
+          <button type="button" class="btn-primary" onclick="criarItem()">Criar e Adicionar ao Inventário</button>
         </div>
 
         <div class="grid-2col">
           <div>
-            <h2>{ INVENTÁRIO (MOCHILA) }</h2>
+            <h2>{ INVENTÁRIO (GUARDADO) }</h2>
             <div id="lista-inventario"></div>
           </div>
           <div>
-            <h2>{ EQUIPADOS / EM USO }</h2>
+            <h2>{ EQUIPADOS (EM USO) }</h2>
             <div id="lista-equipamentos"></div>
           </div>
         </div>
       </div>
 
-      <!-- ABA EFEITOS -->
+      <!-- ABA EFEITOS DE STATUS -->
       <div id="tab-efeitos" class="tab-content">
         <h2>{ EFEITOS DE STATUS ATIVOS }</h2>
         <div class="add-effect">
-          <label for="select-efeitos-globais">Adicionar Efeito Salvo pelo Mestre:</label>
-          <select id="select-efeitos-globais" style="min-width: 200px;">
-            <option value="">Selecione um efeito...</option>
-          </select>
-          <button type="button" class="btn-primary" onclick="adicionarEfeitoGlobalNaFicha()">Aplicar Efeito</button>
+          <select id="select-efeitos-globais"></select>
+          <button type="button" class="btn-primary" onclick="adicionarEfeitoGlobalNaFicha()">+ Aplicar Efeito no Personagem</button>
         </div>
         <ul class="effect-list" id="lista-efeitos"></ul>
       </div>
 
-      <!-- ABA ANOTAÇÕES -->
+      <!-- ABA BLOCOS DE ANOTAÇÕES -->
       <div id="tab-anotacoes" class="tab-content">
         <div class="anotacoes-header">
           <h2>{ BLOCOS DE ANOTAÇÕES }</h2>
-          <button type="button" class="btn-primary" onclick="criarBlocoAnotacao()">+ Novo Bloco</button>
+          <button type="button" class="btn-primary" onclick="criarBlocoAnotacao()">+ Criar Nova Anotação</button>
         </div>
         <div class="anotacoes-grid" id="container-anotacoes"></div>
       </div>
     </main>
-
   </div>
 
-  <!-- MODAL DE XP -->
+  <!-- MODAL DE GANHO DE XP -->
   <div id="modal-xp" class="modal-overlay">
     <div class="modal-box">
-      <h3>Gerenciador de Experiência</h3>
-      <input type="number" id="xp-input-val" placeholder="Quantidade de XP">
+      <h3>Adicionar Experiência (XP)</h3>
+      <input type="number" id="xp-input-val" value="0">
       <div class="modal-quick-buttons">
         <button type="button" class="btn-sub" onclick="somarXPInput(10)">+10</button>
         <button type="button" class="btn-sub" onclick="somarXPInput(50)">+50</button>
         <button type="button" class="btn-sub" onclick="somarXPInput(100)">+100</button>
+        <button type="button" class="btn-sub" onclick="somarXPInput(500)">+500</button>
       </div>
       <div class="modal-actions">
-        <button type="button" class="btn-primary" onclick="confirmarGanhoXP()">Adicionar</button>
+        <button type="button" class="btn-success" onclick="confirmarGanhoXP()">Confirmar</button>
         <button type="button" class="btn-danger" onclick="fecharModalXP()">Cancelar</button>
       </div>
     </div>
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <script src="script.js"></script>
 </body>
 </html>

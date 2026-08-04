@@ -38,6 +38,7 @@ let buffsTempGmEffect = [];
 let efeitosGlobaisSalvos = {};
 let defesasEspecificas = { perfuracao:0, queimadura:0, corte:0, impacto:0, balistico:0, eletricidade:0, fogo:0, frio:0, acido:0, veneno:0, magico:0 };
 let expAtual = 0;
+let modPermSanMestre = 0; // REQUISITO 4: Modificador permanente de Sanidade do Mestre
 
 // --- DADOS DOS SLOTS DE MAGIA ---
 let slotsAtuais = [0, 0, 0, 0, 0, 0, 0, 0, 0];
@@ -134,6 +135,7 @@ function entrarComoJogador() {
   idFichaAtual = inputID;
   éMestre = false;
   document.getElementById('badge-gm-view').style.display = 'none';
+  document.getElementById('gm-san-control').style.display = 'none'; // Esconde campo do mestre
   document.getElementById('label-ficha-ativa').innerText = `Ficha: ${idFichaAtual}`;
 
   carregarFichaEConectar();
@@ -188,7 +190,9 @@ function carregarPainelMestre() {
 
 function mestreAbrirFicha(idFicha) {
   idFichaAtual = idFicha;
+  éMestre = true;
   document.getElementById('badge-gm-view').style.display = 'inline-block';
+  document.getElementById('gm-san-control').style.display = 'flex'; // Exibe controle de SAN do Mestre
   document.getElementById('label-ficha-ativa').innerText = `Editando Ficha: ${idFichaAtual}`;
 
   carregarFichaEConectar();
@@ -225,6 +229,9 @@ function aplicarDadosFicha(data) {
   atualizarCampoSeInativo('nome', data.nome || idFichaAtual);
   atualizarCampoSeInativo('nivel', data.nivel || 1);
   expAtual = data.expAtual || 0;
+  modPermSanMestre = data.modPermSanMestre || 0;
+  atualizarCampoSeInativo('san-perm-mod', modPermSanMestre);
+  
   atualizarCampoSeInativo('nex', data.nex || '20%');
   atualizarCampoSeInativo('idade', data.idade || '');
   atualizarCampoSeInativo('traco', data.traco || '');
@@ -250,7 +257,6 @@ function aplicarDadosFicha(data) {
   atualizarCampoSeInativo('attr-carisma', data.attrCarisma || 10);
   atualizarCampoSeInativo('attr-sorte', data.attrSorte || 10);
 
-  // Carrega a base pura do objeto salvo no Firebase
   defesasEspecificas = data.defesasEspecificas || { perfuracao:0, queimadura:0, corte:0, impacto:0, balistico:0, eletricidade:0, fogo:0, frio:0, acido:0, veneno:0, magico:0 };
 
   atualizarCampoSeInativo('hab-unicas', data.habUnicas || '');
@@ -292,6 +298,7 @@ function salvarDados() {
     nome: document.getElementById('nome').value,
     nivel: document.getElementById('nivel').value,
     expAtual,
+    modPermSanMestre,
     nex: document.getElementById('nex').value,
     idade: document.getElementById('idade').value,
     traco: document.getElementById('traco').value,
@@ -321,7 +328,7 @@ function salvarDados() {
     attrCarisma: document.getElementById('attr-carisma').value,
     attrSorte: document.getElementById('attr-sorte').value,
 
-    defesasEspecificas: defesasEspecificas, // Salva a BASE pura sem acumular buffs
+    defesasEspecificas: defesasEspecificas,
 
     habUnicas: document.getElementById('hab-unicas').value,
     habLendarias: document.getElementById('hab-lendarias').value,
@@ -464,13 +471,16 @@ function popularOpcoesBuff() {
   selects.forEach(s => { if (s) s.innerHTML = htmlOptions; });
 }
 
+// REQUISITO 3: Adicionada flag isPorTurno para transformar qualquer atributo/perícia em bônus por turno
 function adicionarBuffItemTemp() {
   const select = document.getElementById('buff-alvo');
   const alvoId = select.value;
   const alvoNome = select.options[select.selectedIndex].text;
   const val = parseInt(document.getElementById('buff-valor').value) || 0;
+  const isPorTurno = document.getElementById('buff-is-turno').checked;
+
   if (val === 0) return;
-  buffsTempItem.push({ alvoId, alvoNome, val });
+  buffsTempItem.push({ alvoId, alvoNome, val, isPorTurno });
   renderBuffsTemp();
 }
 
@@ -478,7 +488,7 @@ function renderBuffsTemp() {
   const container = document.getElementById('lista-buffs-temp');
   if (!container) return;
   container.innerHTML = buffsTempItem.map((b, idx) => `
-    <span class="buff-tag">${b.alvoNome}: ${b.val > 0 ? '+' : ''}${b.val} <span onclick="removerBuffTemp(${idx})">×</span></span>
+    <span class="buff-tag">${b.alvoNome}: ${b.val > 0 ? '+' : ''}${b.val} ${b.isPorTurno ? '/Turno' : ''} <span onclick="removerBuffTemp(${idx})">×</span></span>
   `).join('');
 }
 
@@ -632,6 +642,12 @@ function calcularEfeitoValorEscalado(valorBase, tipoEscala, fator, nivel) {
   return vBase;
 }
 
+// REQUISITO 4: Alterar o modificador permanente da Sanidade pelo Mestre
+function atualizarSanidadePermMestre(val) {
+  modPermSanMestre = parseInt(val) || 0;
+  recalcularTudo();
+}
+
 // --- RECALCULAR TUDO ---
 function recalcularTudo(deveSalvar = true) {
   let nivel = parseInt(document.getElementById('nivel').value) || 1;
@@ -646,6 +662,31 @@ function recalcularTudo(deveSalvar = true) {
   let carismaBase = parseFloat(document.getElementById('attr-carisma').value) || 0;
   let sorteBase = parseFloat(document.getElementById('attr-sorte').value) || 0;
 
+  // REQUISITO 2: Atualização dos badges visuais indicando quantidade de dados a rolar
+  const listaAtributosBase = [
+    { id: 'forca', val: forcaBase },
+    { id: 'agilidade', val: agilidadeBase },
+    { id: 'vigor', val: vigorBase },
+    { id: 'inteligencia', val: inteligenciaBase },
+    { id: 'presenca', val: presencaBase },
+    { id: 'carisma', val: carismaBase },
+    { id: 'sorte', val: sorteBase }
+  ];
+
+  listaAtributosBase.forEach(item => {
+    let badge = document.getElementById(`dice-tag-${item.id}`);
+    if (badge) {
+      if (item.val >= 10) {
+        let dadosCount = 1 + Math.floor((item.val - 10) / 2);
+        badge.innerText = `${dadosCount}d`;
+        badge.className = "dice-badge positive";
+      } else {
+        badge.innerText = `-1d`;
+        badge.className = "dice-badge negative";
+      }
+    }
+  });
+
   const classeBase = document.getElementById('classe-base').value;
   let bonusClasse = { pv: 0, pe: 0, san: 0, ma: 0, def: 0, eva: 0, ptsLivre: 0 };
 
@@ -659,12 +700,14 @@ function recalcularTudo(deveSalvar = true) {
 
   let buffsAcumulados = {};
 
-  // ACUMULAR BUFFS DOS EQUIPAMENTOS
+  // ACUMULAR BUFFS DOS EQUIPAMENTOS (Apenas estáticos)
   equipamentos.forEach(item => {
     let mult = parseInt(item.qtd) || 1;
     if (item.buffs) {
       item.buffs.forEach(b => {
-        buffsAcumulados[b.alvoId] = (buffsAcumulados[b.alvoId] || 0) + (b.val * mult);
+        if (!b.isPorTurno) {
+          buffsAcumulados[b.alvoId] = (buffsAcumulados[b.alvoId] || 0) + (b.val * mult);
+        }
       });
     }
   });
@@ -708,13 +751,17 @@ function recalcularTudo(deveSalvar = true) {
   });
 
   document.getElementById('pv-max').value = 10 + vigor + bonusClasse.pv + (buffsAcumulados['status-pv'] || 0);
-  document.getElementById('san-max').value = 4 + presenca + bonusClasse.san + (buffsAcumulados['status-san'] || 0);
+  
+  // REQUISITO 4: Sanidade Máxima descontando o Modificador Permanente do Mestre
+  let sanMaxCalculada = 4 + presenca + bonusClasse.san + (buffsAcumulados['status-san'] || 0) - modPermSanMestre;
+  document.getElementById('san-max').value = Math.max(0, sanMaxCalculada);
+
   document.getElementById('pe-max').value = 5 + agilidade + vigor + bonusClasse.pe + (buffsAcumulados['status-pe'] || 0);
   document.getElementById('ma-max').value = vigor + presenca + sorte + inteligencia + bonusClasse.ma + (buffsAcumulados['status-ma'] || 0);
   document.getElementById('eva-val').value = agilidade + bonusClasse.eva + (buffsAcumulados['status-eva'] || 0);
   document.getElementById('def-val').value = Math.floor(vigor / 2) + bonusClasse.def + (buffsAcumulados['status-def'] || 0);
 
-  // ATUALIZAR DEFESAS ESPECÍFICAS EXIBIDAS (BASE + BUFF)
+  // ATUALIZAR DEFESAS ESPECÍFICAS
   const defsLista = ['perfuracao','queimadura','corte','impacto','balistico','eletricidade','fogo','frio','acido','veneno','magico'];
   defsLista.forEach(d => {
     let el = document.getElementById(`def-${d}`);
@@ -733,7 +780,8 @@ function recalcularTudo(deveSalvar = true) {
   let deslocamentoFinal = Math.floor(agilidade / 2) + (buffsAcumulados['status-deslocamento'] || 0);
   document.getElementById('deslocamento-val').value = `${Math.max(0, deslocamentoFinal)}m`;
 
-  let ptsLivresTotais = inteligencia + bonusClasse.ptsLivre;
+  // REQUISITO 1: Perícias = Inteligência + Bônus de Classe + Level - 1
+  let ptsLivresTotais = inteligencia + bonusClasse.ptsLivre + (nivel - 1);
   let ptsLivresGastos = 0;
   let ptsClasseTotais = 0;
   let ptsClasseGastos = 0;
@@ -852,9 +900,6 @@ function criarItem() {
   let desc = document.getElementById('item-desc').value;
   let fileInput = document.getElementById('item-img-input');
 
-  let efeitoTurnoRecurso = document.getElementById('item-turno-recurso').value;
-  let efeitoTurnoValor = parseInt(document.getElementById('item-turno-valor').value) || 0;
-
   if (!nome) return alert("Por favor, digite o nome do item!");
 
   const processarItem = (imagemBase64) => {
@@ -862,8 +907,7 @@ function criarItem() {
       id: Date.now(), 
       nome, qtd, carga, mochila, bonusCarga, desc, 
       imagem: imagemBase64, 
-      buffs: [...buffsTempItem],
-      efeitoTurno: { recurso: efeitoTurnoRecurso, valor: efeitoTurnoValor }
+      buffs: [...buffsTempItem]
     });
     document.getElementById('item-nome').value = '';
     document.getElementById('item-qtd').value = '1';
@@ -871,8 +915,6 @@ function criarItem() {
     document.getElementById('item-desc').value = '';
     document.getElementById('item-is-mochila').checked = false;
     document.getElementById('item-bonus-carga').value = '0';
-    document.getElementById('item-turno-recurso').value = 'none';
-    document.getElementById('item-turno-valor').value = '0';
     if (fileInput) fileInput.value = '';
     buffsTempItem = [];
     renderBuffsTemp();
@@ -896,10 +938,7 @@ function renderItens() {
 
   inventario.forEach(item => {
     let pesoTotal = (item.carga * item.qtd).toFixed(1).replace('.0', '');
-    let tagsBuffs = item.buffs ? item.buffs.map(b => `<span class="buff-tag">${b.alvoNome}: ${b.val>0?'+':''}${b.val}</span>`).join('') : '';
-    if (item.efeitoTurno && item.efeitoTurno.recurso !== 'none' && item.efeitoTurno.valor !== 0) {
-      tagsBuffs += `<span class="buff-tag" style="background:#00d2ff; color:#000;">${item.efeitoTurno.valor>0?'+':''}${item.efeitoTurno.valor} ${item.efeitoTurno.recurso.toUpperCase()}/turno</span>`;
-    }
+    let tagsBuffs = item.buffs ? item.buffs.map(b => `<span class="buff-tag">${b.alvoNome}: ${b.val>0?'+':''}${b.val}${b.isPorTurno ? '/turno' : ''}</span>`).join('') : '';
     let imgHTML = item.imagem ? `<img src="${item.imagem}" class="item-img-preview" alt="item">` : '';
 
     invContainer.innerHTML += `
@@ -926,10 +965,7 @@ function renderItens() {
   });
 
   equipamentos.forEach(item => {
-    let tagsBuffs = item.buffs ? item.buffs.map(b => `<span class="buff-tag">${b.alvoNome}: ${b.val>0?'+':''}${b.val}</span>`).join('') : '';
-    if (item.efeitoTurno && item.efeitoTurno.recurso !== 'none' && item.efeitoTurno.valor !== 0) {
-      tagsBuffs += `<span class="buff-tag" style="background:#00d2ff; color:#000;">${item.efeitoTurno.valor>0?'+':''}${item.efeitoTurno.valor} ${item.efeitoTurno.recurso.toUpperCase()}/turno</span>`;
-    }
+    let tagsBuffs = item.buffs ? item.buffs.map(b => `<span class="buff-tag">${b.alvoNome}: ${b.val>0?'+':''}${b.val}${b.isPorTurno ? '/turno' : ''}</span>`).join('') : '';
     let imgHTML = item.imagem ? `<img src="${item.imagem}" class="item-img-preview" alt="item">` : '';
 
     eqpContainer.innerHTML += `
@@ -1176,16 +1212,22 @@ function mestrePassarTurnoGeral() {
   });
 }
 
+// REQUISITO 3: Aplicar bônus de turnos vindos dos itens equipados
 function processarPassagemDeTurnoLocal() {
-  // APLICA EFEITOS CONTÍNUOS DE ITENS EQUIPADOS
   equipamentos.forEach(item => {
     let mult = parseInt(item.qtd) || 1;
-    if (item.efeitoTurno && item.efeitoTurno.recurso !== 'none' && item.efeitoTurno.valor !== 0) {
-      aplicarRecursoNoCampo(item.efeitoTurno.recurso, item.efeitoTurno.valor * mult);
+    if (item.buffs) {
+      item.buffs.forEach(b => {
+        if (b.isPorTurno) {
+          if (b.alvoId.startsWith('status-')) {
+            let rec = b.alvoId.replace('status-', '');
+            aplicarRecursoNoCampo(rec, b.val * mult);
+          }
+        }
+      });
     }
   });
 
-  // APLICA EFEITOS DE STATUS ATIVOS
   let novosEfeitos = [];
   efeitos.forEach(e => {
     let lvl = e.nivelAtual || 1;
@@ -1212,14 +1254,18 @@ function processarPassagemDeTurnoLocal() {
 }
 
 function processarTurnoFichaObjeto(f) {
-  // AUTOMAÇÃO OBJECT-BASED PARA O MESTRE
   let eqp = f.equipamentos || [];
   let efts = f.efeitos || [];
 
   eqp.forEach(item => {
     let mult = parseInt(item.qtd) || 1;
-    if (item.efeitoTurno && item.efeitoTurno.recurso !== 'none' && item.efeitoTurno.valor !== 0) {
-      modificarRecursoObjeto(f, item.efeitoTurno.recurso, item.efeitoTurno.valor * mult);
+    if (item.buffs) {
+      item.buffs.forEach(b => {
+        if (b.isPorTurno && b.alvoId.startsWith('status-')) {
+          let rec = b.alvoId.replace('status-', '');
+          modificarRecursoObjeto(f, rec, b.val * mult);
+        }
+      });
     }
   });
 
