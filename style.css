@@ -224,3 +224,18 @@ button { cursor: pointer; transition: 0.2s; border: none; border-radius: 4px; fo
 .btn-sub:hover { color: #fff; border-color: #ff4655; }
 .btn-restaurar { background: #00e1ff; color: #000; padding: 8px 12px; }
 .btn-zerar { background: #ff2a3a; color: #fff; padding: 8px 12px; }
+/* Correção para Textareas transparentes/brancos */
+textarea {
+  background: #202024;
+  border: 1px solid #29292e;
+  color: #fff;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  resize: vertical;
+}
+
+textarea:focus {
+  outline: none;
+  border-color: #ff4655;
+}

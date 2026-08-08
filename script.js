@@ -889,6 +889,7 @@ function recalcularTudo(deveSalvar = true) {
 
   let pesoInventario = inventario.reduce((acc, item) => acc + ((parseFloat(item.carga) || 0) * (parseFloat(item.qtd) || 1)), 0);
   let cargaAtualTotal = pesoInventario + pesoProprioMochilasEquipadas;
+  let cargaTotalMaxPermitida = cargaBaseMax + cargaExtraMochilas;
 
   document.getElementById('carga-atual').innerText = cargaAtualTotal.toFixed(1).replace('.0', '');
   document.getElementById('carga-base-max').innerText = cargaBaseMax;
@@ -897,7 +898,7 @@ function recalcularTudo(deveSalvar = true) {
   const containerCarga = document.getElementById('carga-bar-container');
   const alertaMochila = document.getElementById('alerta-mochila-excesso');
 
-  if (pesoProprioMochilasEquipadas > cargaBaseMax) {
+  if (cargaAtualTotal > cargaTotalMaxPermitida || pesoProprioMochilasEquipadas > cargaBaseMax) {
     containerCarga.classList.add('carga-excedida');
     if (alertaMochila) alertaMochila.style.display = 'block';
   } else {
