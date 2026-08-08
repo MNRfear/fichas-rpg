@@ -239,3 +239,49 @@ textarea:focus {
   outline: none;
   border-color: #ff4655;
 }
+/* ==========================================================================
+   EXPANSÃO HORIZONTAL DOS BLOCOS DE ANOTAÇÕES
+   ========================================================================== */
+#container-anotacoes {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
+}
+
+.bloco-card {
+  background: #202024;
+  border: 1px solid #29292e;
+  border-radius: 6px;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%; /* Ocupa toda a largura horizontal disponível do painel */
+}
+
+.bloco-card input {
+  background: #121214;
+  border: 1px solid #29292e;
+  color: #00ff88;
+  font-weight: bold;
+  font-size: 1.1rem;
+  padding: 8px;
+  border-radius: 4px;
+  width: 100%;
+}
+
+.bloco-card textarea {
+  background: #121214;
+  border: 1px solid #29292e;
+  color: #fff;
+  padding: 10px;
+  border-radius: 4px;
+  width: 100%;
+  resize: vertical; /* Permite redimensionar verticalmente sem quebrar a largura */
+  font-size: 0.95rem;
+}
+
+.bloco-card button {
+  align-self: flex-end;
+}
