@@ -365,3 +365,21 @@ textarea:focus {
   max-width: 100%;   /* Impede que ultrapasse a borda do card */
   font-size: 0.9rem;
 }
+/* ==========================================================================
+   FORÇAR REDIMENSIONAMENTO DE CAIXAS DE TEXTO (SKILLS / FEITIÇOS / RITUAIS)
+   ========================================================================== */
+
+/* Aplica para textarea, inputs ou divs editáveis dentro dos cards */
+.skill-card textarea,
+.feitico-card textarea,
+.ritual-card textarea,
+.skill-card input,
+.feitico-card input,
+.ritual-card input {
+  resize: both !important;
+  overflow: auto !important;
+  display: block !important;
+  max-width: 100% !important;
+  min-width: 120px !important;
+  min-height: 40px !important;
+}
