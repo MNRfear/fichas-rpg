@@ -278,7 +278,7 @@ textarea:focus {
   padding: 10px;
   border-radius: 4px;
   width: 100%;
-  resize: vertical; /* Permite redimensionar verticalmente sem quebrar a largura */
+  resize: both; /* Permite redimensionar verticalmente sem quebrar a largura */
   font-size: 0.95rem;
 }
 
