@@ -205,51 +205,12 @@ h2 { margin: 15px 0 10px 0; border-left: 4px solid #ff4655; padding-left: 8px; f
 .btn-fundir { background: #00e1ff; color: #000; border: none; font-size: 0.72rem; font-weight: bold; padding: 4px 8px; border-radius: 4px; cursor: pointer; margin-top: 4px; width: 100%; }
 .btn-fundir:disabled { background: #29292e; color: #666; cursor: not-allowed; }
 
-/* BLOCOS DE ANOTAÇÕES (LIVRES PARA REDIMENSIONAR) */
+/* BLOCOS DE ANOTAÇÕES */
 .anotacoes-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-
-.anotacoes-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-  align-items: flex-start;
-}
-
-.bloco-card {
-  background: #202024;
-  border: 1px solid #29292e;
-  border-radius: 6px;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 280px;
-  width: fit-content;
-  max-width: 100%;
-  resize: horizontal;
-  overflow: auto;
-}
-
-.bloco-card input {
-  background: #121214;
-  border: 1px solid #ff4655;
-  color: #fff;
-  padding: 6px;
-  border-radius: 4px;
-  font-weight: bold;
-  width: 100%;
-}
-
-.bloco-card textarea {
-  background: #121214;
-  border: 1px solid #29292e;
-  color: #e1e1e6;
-  padding: 8px;
-  border-radius: 4px;
-  resize: both;
-  min-width: 100%;
-  min-height: 120px;
-}
+.anotacoes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
+.bloco-card { background: #202024; border: 1px solid #29292e; border-radius: 6px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.bloco-card input { background: #121214; border: 1px solid #ff4655; color: #fff; padding: 6px; border-radius: 4px; font-weight: bold; }
+.bloco-card textarea { background: #121214; border: 1px solid #29292e; color: #e1e1e6; padding: 8px; border-radius: 4px; resize: vertical; }
 
 /* BOTÕES GERAIS */
 button { cursor: pointer; transition: 0.2s; border: none; border-radius: 4px; font-weight: bold; }
@@ -271,9 +232,7 @@ textarea {
   padding: 8px;
   border-radius: 4px;
   font-size: 0.95rem;
-  resize: both; /* Permite expansão Vertical + Horizontal */
-  max-width: 100%;
-  box-sizing: border-box;
+  resize: vertical;
 }
 
 textarea:focus {
