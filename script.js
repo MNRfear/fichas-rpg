@@ -1439,29 +1439,72 @@ function criarBlocoAnotacao() {
 function renderBlocosAnotacoes() {
   const container = document.getElementById('container-anotacoes');
   if (!container) return;
-  container.innerHTML = '';
+
+  // Remove do DOM apenas os cards de blocos que não existem mais (não apaga tudo)
+  const idsAtuais = new Set(blocosAnotacoes.map(b => String(b.id)));
+  Array.from(container.children).forEach(card => {
+    if (!idsAtuais.has(card.dataset.id)) card.remove();
+  });
 
   blocosAnotacoes.forEach((b, idx) => {
-    container.innerHTML += `
-      <div class="bloco-card">
-        <input type="text" value="${b.titulo}" onchange="atualizarTituloAnotacao(${idx}, this.value)">
-        <textarea rows="6" onchange="atualizarTextoAnotacao(${idx}, this.value)">${b.texto}</textarea>
-        <button class="btn-danger" onclick="removerBlocoAnotacao(${idx})">Excluir Bloco</button>
-      </div>
-    `;
+    let card = container.querySelector(`.bloco-card[data-id="${b.id}"]`);
+
+    if (!card) {
+      // Cria o card apenas se ele ainda não existir no DOM
+      card = document.createElement('div');
+      card.className = 'bloco-card';
+      card.dataset.id = b.id;
+      card.innerHTML = `
+        <input type="text" class="bloco-titulo">
+        <textarea rows="6" class="bloco-texto"></textarea>
+        <button type="button" class="btn-danger">Excluir Bloco</button>
+      `;
+
+      const inputTitulo = card.querySelector('.bloco-titulo');
+      const textareaTexto = card.querySelector('.bloco-texto');
+      const btnExcluir = card.querySelector('.btn-danger');
+
+      // 'input' atualiza a cada tecla digitada (não perde nada se você clicar em outro lugar antes do blur)
+      inputTitulo.addEventListener('input', () => atualizarTituloAnotacao(b.id, inputTitulo.value));
+      textareaTexto.addEventListener('input', () => atualizarTextoAnotacao(b.id, textareaTexto.value));
+      btnExcluir.addEventListener('click', () => removerBlocoAnotacao(b.id));
+
+      container.appendChild(card);
+    }
+
+    // Garante a ordem correta no grid sem recriar os cards que não mudaram de posição
+    const posAtual = Array.from(container.children).indexOf(card);
+    if (posAtual !== idx) {
+      container.insertBefore(card, container.children[idx] || null);
+    }
+
+    // Só sobrescreve o valor se o campo não for o que está em edição no momento
+    // (evita apagar o que a pessoa está digitando quando o Firebase sincroniza)
+    const inputTitulo = card.querySelector('.bloco-titulo');
+    const textareaTexto = card.querySelector('.bloco-texto');
+    if (document.activeElement !== inputTitulo) inputTitulo.value = b.titulo;
+    if (document.activeElement !== textareaTexto) textareaTexto.value = b.texto;
   });
 }
 
-function atualizarTituloAnotacao(idx, novoTitulo) {
-  if (blocosAnotacoes[idx]) { blocosAnotacoes[idx].titulo = novoTitulo; salvarDados(); }
+let timeoutSalvarAnotacoes = null;
+function salvarAnotacoesComDebounce() {
+  clearTimeout(timeoutSalvarAnotacoes);
+  timeoutSalvarAnotacoes = setTimeout(salvarDados, 500);
 }
 
-function atualizarTextoAnotacao(idx, novoTexto) {
-  if (blocosAnotacoes[idx]) { blocosAnotacoes[idx].texto = novoTexto; salvarDados(); }
+function atualizarTituloAnotacao(id, novoTitulo) {
+  const bloco = blocosAnotacoes.find(b => b.id === id);
+  if (bloco) { bloco.titulo = novoTitulo; salvarAnotacoesComDebounce(); }
 }
 
-function removerBlocoAnotacao(idx) {
-  blocosAnotacoes.splice(idx, 1);
+function atualizarTextoAnotacao(id, novoTexto) {
+  const bloco = blocosAnotacoes.find(b => b.id === id);
+  if (bloco) { bloco.texto = novoTexto; salvarAnotacoesComDebounce(); }
+}
+
+function removerBlocoAnotacao(id) {
+  blocosAnotacoes = blocosAnotacoes.filter(b => b.id !== id);
   renderBlocosAnotacoes();
   salvarDados();
 }

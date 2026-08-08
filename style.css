@@ -320,7 +320,7 @@ textarea:focus {
   min-width: 200px;
   max-width: 100%;
 }
-/* Caixas de texto de Skills, Feitiços e Rituais: começam ocupando a largura toda, mas podem ser expandidas manualmente */
+/* Caixas de texto de Skills, Feitiços e Rituais: começam ocupando a largura toda, mas podem ser expandidas manualmente (horizontal e vertical) */
 #skills-texto,
 #feiticos-texto,
 #rituais-texto {
@@ -328,5 +328,5 @@ textarea:focus {
   min-width: 250px;
   max-width: none;
   box-sizing: border-box;
-  resize: horizontal;
+  resize: both;
 }
