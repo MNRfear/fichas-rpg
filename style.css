@@ -240,8 +240,10 @@ textarea:focus {
   border-color: #ff4655;
 }
 /* ==========================================================================
-   EXPANSÃO HORIZONTAL DOS BLOCOS DE ANOTAÇÕES
+   SISTEMA DE BLOCOS REDIMENSIONÁVEIS (MANUALMENTE)
    ========================================================================== */
+
+/* Contêiner das Anotações */
 #container-anotacoes {
   display: flex;
   flex-direction: column;
@@ -249,6 +251,7 @@ textarea:focus {
   width: 100%;
 }
 
+/* 1. Card de Anotações Redimensionável */
 .bloco-card {
   background: #202024;
   border: 1px solid #29292e;
@@ -257,7 +260,16 @@ textarea:focus {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  width: 100%; /* Ocupa toda a largura horizontal disponível do painel */
+  
+  /* Habilita o arraste manual no canto inferior direito */
+  resize: both; 
+  overflow: auto; 
+  
+  /* Dimensões iniciais e limites */
+  width: 100%;        /* Começa ocupando a largura total */
+  min-width: 250px;   /* Evita que o usuário encolha demais */
+  max-width: 100%;    /* Não deixa estourar a tela */
+  min-height: 150px;  /* Altura mínima do card */
 }
 
 .bloco-card input {
@@ -278,10 +290,33 @@ textarea:focus {
   padding: 10px;
   border-radius: 4px;
   width: 100%;
-  resize: both; /* Permite redimensionar verticalmente sem quebrar a largura */
+  flex-grow: 1;
+  resize: none; /* Desativa a alça própria do textarea para usar a do card */
   font-size: 0.95rem;
 }
 
 .bloco-card button {
   align-self: flex-end;
+}
+
+/* 2. Cards de Skills, Feitiços e Rituais Redimensionáveis */
+.skill-card,
+.feitico-card,
+.ritual-card {
+  background: #202024;
+  border: 1px solid #29292e;
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  /* Habilita o arraste manual */
+  resize: both;
+  overflow: auto;
+
+  /* Dimensões iniciais e limites */
+  width: 280px;
+  min-width: 200px;
+  max-width: 100%;
 }
