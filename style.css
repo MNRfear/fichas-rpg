@@ -320,3 +320,48 @@ textarea:focus {
   min-width: 200px;
   max-width: 100%;
 }
+/* ==========================================================================
+   REDIMENSIONAMENTO DAS CAIXAS DE TEXTO EM SKILLS, FEITIÇOS E RITUAIS
+   ========================================================================== */
+
+/* 1. Garante que os cards dessas abas permitam redimensionamento */
+.skill-card,
+.feitico-card,
+.ritual-card {
+  background: #202024;
+  border: 1px solid #29292e;
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  /* Permite redimensionar o card inteiro */
+  resize: both;
+  overflow: auto;
+
+  width: 100%;
+  min-width: 200px;
+  max-width: 100%;
+}
+
+/* 2. Permite puxar e redimensionar a caixa de texto interna (textarea) */
+.skill-card textarea,
+.feitico-card textarea,
+.ritual-card textarea {
+  background: #121214;
+  border: 1px solid #29292e;
+  color: #fff;
+  padding: 8px;
+  border-radius: 4px;
+  width: 100%;
+  
+  /* Habilita a alça no canto para puxar tanto na horizontal quanto na vertical */
+  resize: both; 
+  overflow: auto;
+
+  min-height: 80px;  /* Altura inicial confortável */
+  min-width: 150px;  /* Largura mínima para não sumir */
+  max-width: 100%;   /* Impede que ultrapasse a borda do card */
+  font-size: 0.9rem;
+}
