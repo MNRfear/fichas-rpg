@@ -676,32 +676,6 @@ function recalcularTudo(deveSalvar = true) {
   let carismaBase = parseFloat(document.getElementById('attr-carisma').value) || 0;
   let sorteBase = parseFloat(document.getElementById('attr-sorte').value) || 0;
 
-  // REQUISITO 1: Atualização dos badges visuais permitindo dados negativos progressivos (-1d, -2d, -3d, etc.)
-  const listaAtributosBase = [
-    { id: 'forca', val: forcaBase },
-    { id: 'agilidade', val: agilidadeBase },
-    { id: 'vigor', val: vigorBase },
-    { id: 'inteligencia', val: inteligenciaBase },
-    { id: 'presenca', val: presencaBase },
-    { id: 'carisma', val: carismaBase },
-    { id: 'sorte', val: sorteBase }
-  ];
-
-  listaAtributosBase.forEach(item => {
-    let badge = document.getElementById(`dice-tag-${item.id}`);
-    if (badge) {
-      if (item.val >= 10) {
-        let dadosCount = 1 + Math.floor((item.val - 10) / 2);
-        badge.innerText = `${dadosCount}d`;
-        badge.className = "dice-badge positive";
-      } else {
-        let dadosNegativos = -1 - Math.floor((9 - item.val) / 2);
-        badge.innerText = `${dadosNegativos}d`;
-        badge.className = "dice-badge negative";
-      }
-    }
-  });
-
   const classeBase = document.getElementById('classe-base').value;
   let bonusClasse = { pv: 0, pe: 0, san: 0, ma: 0, def: 0, eva: 0, ptsLivre: 0 };
 
@@ -745,6 +719,33 @@ function recalcularTudo(deveSalvar = true) {
   let presenca = presencaBase + (buffsAcumulados['attr-presenca'] || 0);
   let carisma = carismaBase + (buffsAcumulados['attr-carisma'] || 0);
   let sorte = sorteBase + (buffsAcumulados['attr-sorte'] || 0);
+
+  // REQUISITO 1: Atualização dos badges visuais permitindo dados negativos progressivos (-1d, -2d, -3d, etc.)
+  // Usa os valores finais (já com os buffs de equipamentos/efeitos somados), não os valores base
+  const listaAtributosFinais = [
+    { id: 'forca', val: forca },
+    { id: 'agilidade', val: agilidade },
+    { id: 'vigor', val: vigor },
+    { id: 'inteligencia', val: inteligencia },
+    { id: 'presenca', val: presenca },
+    { id: 'carisma', val: carisma },
+    { id: 'sorte', val: sorte }
+  ];
+
+  listaAtributosFinais.forEach(item => {
+    let badge = document.getElementById(`dice-tag-${item.id}`);
+    if (badge) {
+      if (item.val >= 10) {
+        let dadosCount = 1 + Math.floor((item.val - 10) / 2);
+        badge.innerText = `${dadosCount}d`;
+        badge.className = "dice-badge positive";
+      } else {
+        let dadosNegativos = -1 - Math.floor((9 - item.val) / 2);
+        badge.innerText = `${dadosNegativos}d`;
+        badge.className = "dice-badge negative";
+      }
+    }
+  });
 
   const listaAtributos = ['forca', 'agilidade', 'vigor', 'inteligencia', 'presenca', 'carisma', 'sorte'];
   listaAtributos.forEach(attr => {
