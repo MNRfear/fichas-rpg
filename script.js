@@ -12,6 +12,7 @@ const firebaseConfig = {
 // Inicializa o Firebase
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
+const auth = firebase.auth();
 
 // SENHA PARA O MESTRE
 const SENHA_MESTRE = "2510";
@@ -1508,4 +1509,411 @@ function removerBlocoAnotacao(id) {
   blocosAnotacoes = blocosAnotacoes.filter(b => b.id !== id);
   renderBlocosAnotacoes();
   salvarDados();
+}
+
+// ==========================================================================
+// AGENDAMENTO DE SESSÕES
+// ==========================================================================
+
+// --- CONFIGURAÇÃO DA GRADE ---
+const AGENDA_HORA_INICIO = 10;   // grade começa às 10:00
+const AGENDA_HORA_FIM = 24;      // grade termina às 23:30 (exclusivo)
+const AGENDA_INTERVALO_MIN = 30; // blocos de 30 em 30 minutos
+const AGENDA_CORES_JOGADORES = ['#ff4655', '#00e1ff', '#00ff88', '#ffcc00', '#c77dff', '#ff8f40', '#4dd0e1', '#f06292'];
+
+let usuarioAgenda = null;        // { uid, nome, role }
+let mesAnoAtual = null;          // "2026-09"
+let refAgendamentoAtual = null;
+let agendamentoAtual = null;
+let modoGradeView = 'editar';
+let jogadoresDestacados = new Set();
+let pendenciasSlots = {};
+
+// --- LOGIN / CADASTRO ---
+function alternarAuthTab(tipo) {
+  document.getElementById('agenda-form-login').classList.toggle('active', tipo === 'login');
+  document.getElementById('agenda-form-cadastro').classList.toggle('active', tipo === 'cadastro');
+  document.getElementById('agenda-auth-btn-login').classList.toggle('active', tipo === 'login');
+  document.getElementById('agenda-auth-btn-cadastro').classList.toggle('active', tipo === 'cadastro');
+}
+
+function criarContaAgenda() {
+  const nome = document.getElementById('agenda-cadastro-nome').value.trim();
+  const email = document.getElementById('agenda-cadastro-email').value.trim();
+  const senha = document.getElementById('agenda-cadastro-senha').value;
+  if (!nome || !email || !senha) return alert('Preencha nome, email e senha!');
+
+  auth.createUserWithEmailAndPassword(email, senha)
+    .then(cred => database.ref('usuarios/' + cred.user.uid).set({ nome, role: 'jogador' }))
+    .catch(err => alert('Erro ao criar conta: ' + traduzirErroFirebaseAuth(err.code)));
+}
+
+function loginAgenda() {
+  const email = document.getElementById('agenda-login-email').value.trim();
+  const senha = document.getElementById('agenda-login-senha').value;
+  if (!email || !senha) return alert('Preencha email e senha!');
+
+  auth.signInWithEmailAndPassword(email, senha)
+    .catch(err => alert('Erro ao entrar: ' + traduzirErroFirebaseAuth(err.code)));
+}
+
+function logoutAgenda() {
+  auth.signOut();
+}
+
+function traduzirErroFirebaseAuth(code) {
+  const mapa = {
+    'auth/email-already-in-use': 'Este email já está cadastrado.',
+    'auth/invalid-email': 'Email inválido.',
+    'auth/weak-password': 'Senha muito fraca (mínimo 6 caracteres).',
+    'auth/user-not-found': 'Usuário não encontrado.',
+    'auth/wrong-password': 'Senha incorreta.',
+    'auth/invalid-credential': 'Email ou senha incorretos.'
+  };
+  return mapa[code] || 'Tente novamente. (' + code + ')';
+}
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    database.ref('usuarios/' + user.uid).once('value').then(snap => {
+      const perfil = snap.val() || { nome: user.email, role: 'jogador' };
+      usuarioAgenda = { uid: user.uid, nome: perfil.nome, role: perfil.role || 'jogador' };
+      atualizarUIAuthAgenda();
+      iniciarMesAgenda();
+    });
+  } else {
+    usuarioAgenda = null;
+    if (refAgendamentoAtual) { refAgendamentoAtual.off(); refAgendamentoAtual = null; }
+    atualizarUIAuthAgenda();
+  }
+});
+
+function atualizarUIAuthAgenda() {
+  const logado = !!usuarioAgenda;
+  document.getElementById('agenda-auth').style.display = logado ? 'none' : 'flex';
+  document.getElementById('agenda-app').style.display = logado ? 'block' : 'none';
+  if (logado) {
+    document.getElementById('agenda-user-nome').innerText = usuarioAgenda.nome;
+    const éMestreAgenda = usuarioAgenda.role === 'mestre';
+    document.getElementById('agenda-gm-panel').style.display = éMestreAgenda ? 'flex' : 'none';
+  }
+}
+
+// --- NAVEGAÇÃO DE MÊS ---
+function iniciarMesAgenda() {
+  if (!mesAnoAtual) {
+    const hoje = new Date();
+    mesAnoAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`;
+  }
+  carregarMesAgenda();
+}
+
+function mudarMesAgenda(delta) {
+  let [ano, mes] = mesAnoAtual.split('-').map(Number);
+  mes += delta;
+  if (mes < 1) { mes = 12; ano--; }
+  if (mes > 12) { mes = 1; ano++; }
+  mesAnoAtual = `${ano}-${String(mes).padStart(2, '0')}`;
+  jogadoresDestacados.clear();
+  carregarMesAgenda();
+}
+
+function carregarMesAgenda() {
+  if (refAgendamentoAtual) refAgendamentoAtual.off();
+  document.getElementById('agenda-mes-label').innerText = formatarMesAno(mesAnoAtual);
+
+  refAgendamentoAtual = database.ref('agendamentos/' + mesAnoAtual);
+  refAgendamentoAtual.on('value', snap => {
+    agendamentoAtual = snap.val();
+    renderAgendaMes();
+  });
+}
+
+function formatarMesAno(mesAno) {
+  const [ano, mes] = mesAno.split('-').map(Number);
+  const nomes = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  return `${nomes[mes - 1]} de ${ano}`;
+}
+
+function diasNoMesAgenda(mesAno) {
+  const [ano, mes] = mesAno.split('-').map(Number);
+  return new Date(ano, mes, 0).getDate();
+}
+
+function gerarSlotsHorarioAgenda() {
+  const slots = [];
+  for (let h = AGENDA_HORA_INICIO; h < AGENDA_HORA_FIM; h++) {
+    for (let m = 0; m < 60; m += AGENDA_INTERVALO_MIN) {
+      slots.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+    }
+  }
+  return slots;
+}
+
+// --- RENDER PRINCIPAL (decide qual seção mostrar) ---
+function renderAgendaMes() {
+  if (!usuarioAgenda) return;
+  const status = agendamentoAtual ? agendamentoAtual.status : null;
+  const éMestreAgenda = usuarioAgenda.role === 'mestre';
+
+  document.getElementById('agenda-sem-ciclo').style.display = !agendamentoAtual ? 'block' : 'none';
+  document.getElementById('agenda-grade-wrap').style.display = (status === 'coletando') ? 'block' : 'none';
+  document.getElementById('agenda-confirmacao-wrap').style.display = (status === 'definido' || status === 'confirmado') ? 'block' : 'none';
+
+  document.getElementById('agenda-btn-abrir-votacao').style.display = (!agendamentoAtual && éMestreAgenda) ? 'inline-block' : 'none';
+  document.getElementById('agenda-btn-cancelar-ciclo').style.display = (agendamentoAtual && éMestreAgenda && status === 'coletando') ? 'inline-block' : 'none';
+  document.getElementById('agenda-btn-cancelar-ciclo-2').style.display = (agendamentoAtual && éMestreAgenda && (status === 'definido' || status === 'confirmado')) ? 'inline-block' : 'none';
+
+  document.getElementById('agenda-definir-painel').style.display = (status === 'coletando' && éMestreAgenda) ? 'block' : 'none';
+
+  if (status === 'coletando') {
+    renderGradeAgenda();
+  } else if (status === 'definido' || status === 'confirmado') {
+    renderConfirmacaoAgenda();
+  }
+}
+
+// --- CICLO DO MESTRE ---
+function abrirVotacaoAgenda() {
+  if (agendamentoAtual) return;
+  database.ref('agendamentos/' + mesAnoAtual).set({
+    status: 'coletando',
+    criadoPor: usuarioAgenda.uid
+  });
+}
+
+function cancelarCicloAgenda() {
+  if (!confirm('Isso vai apagar toda a disponibilidade e confirmações registradas para este mês. Continuar?')) return;
+  database.ref('agendamentos/' + mesAnoAtual).remove();
+}
+
+// --- GRADE DE DISPONIBILIDADE ---
+function alternarModoGrade(modo) {
+  modoGradeView = modo;
+  document.getElementById('agenda-btn-modo-editar').classList.toggle('active', modo === 'editar');
+  document.getElementById('agenda-btn-modo-heatmap').classList.toggle('active', modo === 'heatmap');
+  document.getElementById('agenda-legenda-jogadores').style.display = modo === 'heatmap' ? 'flex' : 'none';
+  renderGradeAgenda();
+}
+
+function renderGradeAgenda() {
+  const theadRow = document.getElementById('agenda-grade-thead');
+  const tbody = document.getElementById('agenda-grade-tbody');
+  const totalDias = diasNoMesAgenda(mesAnoAtual);
+  const horarios = gerarSlotsHorarioAgenda();
+  const disponibilidades = (agendamentoAtual && agendamentoAtual.disponibilidades) || {};
+
+  let headHtml = '<th class="grade-canto"></th>';
+  for (let d = 1; d <= totalDias; d++) {
+    headHtml += `<th class="grade-dia-col">${d}</th>`;
+  }
+  theadRow.innerHTML = headHtml;
+
+  const meuId = usuarioAgenda.uid;
+  const meusSlots = (disponibilidades[meuId] && disponibilidades[meuId].slots) || {};
+  const totalComDados = Object.keys(disponibilidades).length || 1;
+
+  let bodyHtml = '';
+  horarios.forEach(hora => {
+    bodyHtml += `<tr><td class="grade-hora-col">${hora}</td>`;
+    for (let d = 1; d <= totalDias; d++) {
+      const chave = `${d}-${hora.replace(':', '')}`;
+
+      if (modoGradeView === 'editar') {
+        const ativo = !!meusSlots[chave];
+        bodyHtml += `<td class="grade-cel ${ativo ? 'cel-livre' : ''}" data-dia="${d}" data-hora="${hora}"></td>`;
+      } else {
+        const livres = Object.values(disponibilidades).filter(u => u.slots && u.slots[chave]);
+        const cor = corIntensidadeAgenda(livres.length, totalComDados);
+        const destacados = livres.filter(u => jogadoresDestacados.has(u.nome));
+        let dots = '';
+        destacados.forEach(u => {
+          dots += `<span class="cel-dot" style="background:${corParaJogadorAgenda(u.nome, disponibilidades)}"></span>`;
+        });
+        const tituloTexto = livres.length ? livres.map(u => u.nome).join(', ') : 'Ninguém livre';
+        bodyHtml += `<td class="grade-cel grade-cel-heat" data-dia="${d}" data-hora="${hora}" style="background:${cor}" title="${tituloTexto}">${dots ? `<div class="cel-dots">${dots}</div>` : ''}</td>`;
+      }
+    }
+    bodyHtml += '</tr>';
+  });
+  tbody.innerHTML = bodyHtml;
+
+  if (modoGradeView === 'heatmap') {
+    renderLegendaJogadoresAgenda(disponibilidades);
+  }
+}
+
+function corIntensidadeAgenda(livres, total) {
+  if (livres === 0) return 'transparent';
+  const alpha = Math.min(0.15 + (livres / total) * 0.75, 0.9);
+  return `rgba(0, 225, 255, ${alpha.toFixed(2)})`;
+}
+
+function corParaJogadorAgenda(nome, disponibilidades) {
+  const nomesOrdenados = Object.values(disponibilidades).map(u => u.nome).sort();
+  const idx = nomesOrdenados.indexOf(nome);
+  return AGENDA_CORES_JOGADORES[idx % AGENDA_CORES_JOGADORES.length];
+}
+
+function renderLegendaJogadoresAgenda(disponibilidades) {
+  const container = document.getElementById('agenda-legenda-jogadores');
+  const nomes = [...new Set(Object.values(disponibilidades).map(u => u.nome))].sort();
+
+  container.innerHTML = nomes.map(nome => {
+    const cor = corParaJogadorAgenda(nome, disponibilidades);
+    const ativo = jogadoresDestacados.has(nome);
+    return `<span class="legenda-chip ${ativo ? 'ativo' : ''}" style="border-color:${cor}" data-nome="${nome}">
+      <span class="legenda-dot" style="background:${cor}"></span>${nome}
+    </span>`;
+  }).join('');
+
+  container.querySelectorAll('.legenda-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const nome = chip.dataset.nome;
+      if (jogadoresDestacados.has(nome)) jogadoresDestacados.delete(nome);
+      else jogadoresDestacados.add(nome);
+      renderGradeAgenda();
+    });
+  });
+}
+
+// --- INTERAÇÃO DE PINTURA (arrastar pra marcar disponibilidade) ---
+function inicializarInteracaoGradeAgenda() {
+  const tbody = document.getElementById('agenda-grade-tbody');
+  if (!tbody) return;
+  let pintando = false;
+  let modoMarcar = true;
+
+  function alvoCelula(el) {
+    return (el && el.classList && el.classList.contains('grade-cel')) ? el : null;
+  }
+
+  function alternarCelula(td, marcar) {
+    td.classList.toggle('cel-livre', marcar);
+    const chave = `${td.dataset.dia}-${td.dataset.hora.replace(':', '')}`;
+    pendenciasSlots[chave] = marcar;
+  }
+
+  tbody.addEventListener('mousedown', (e) => {
+    if (modoGradeView !== 'editar') return;
+    const td = alvoCelula(e.target);
+    if (!td) return;
+    e.preventDefault();
+    pintando = true;
+    modoMarcar = !td.classList.contains('cel-livre');
+    alternarCelula(td, modoMarcar);
+  });
+
+  tbody.addEventListener('mouseover', (e) => {
+    if (!pintando || modoGradeView !== 'editar') return;
+    const td = alvoCelula(e.target);
+    if (td) alternarCelula(td, modoMarcar);
+  });
+
+  tbody.addEventListener('touchstart', (e) => {
+    if (modoGradeView !== 'editar') return;
+    const td = alvoCelula(e.target);
+    if (!td) return;
+    pintando = true;
+    modoMarcar = !td.classList.contains('cel-livre');
+    alternarCelula(td, modoMarcar);
+  }, { passive: true });
+
+  tbody.addEventListener('touchmove', (e) => {
+    if (!pintando || modoGradeView !== 'editar') return;
+    e.preventDefault();
+    const touch = e.touches[0];
+    const el = document.elementFromPoint(touch.clientX, touch.clientY);
+    const td = alvoCelula(el);
+    if (td) alternarCelula(td, modoMarcar);
+  }, { passive: false });
+
+  // Mestre clicando numa célula do mapa de calor pra pré-preencher o painel "Definir Data"
+  tbody.addEventListener('click', (e) => {
+    if (modoGradeView !== 'heatmap' || !usuarioAgenda || usuarioAgenda.role !== 'mestre') return;
+    const td = alvoCelula2Heat(e.target);
+    if (!td) return;
+    document.getElementById('agenda-definir-dia').value = td.dataset.dia;
+    document.getElementById('agenda-definir-hora').value = td.dataset.hora;
+    document.getElementById('agenda-definir-info').innerText = `Livres neste horário: ${td.title || 'ninguém ainda'}`;
+  });
+
+  function alvoCelula2Heat(el) {
+    return el && el.closest ? el.closest('.grade-cel-heat') : null;
+  }
+
+  function finalizarPintura() {
+    if (!pintando) return;
+    pintando = false;
+    salvarDisponibilidadeAgenda();
+  }
+
+  document.addEventListener('mouseup', finalizarPintura);
+  document.addEventListener('touchend', finalizarPintura);
+}
+inicializarInteracaoGradeAgenda();
+
+function salvarDisponibilidadeAgenda() {
+  if (Object.keys(pendenciasSlots).length === 0) return;
+  const atualizacoes = {};
+  Object.keys(pendenciasSlots).forEach(chave => {
+    atualizacoes[`agendamentos/${mesAnoAtual}/disponibilidades/${usuarioAgenda.uid}/slots/${chave}`] = pendenciasSlots[chave] ? true : null;
+  });
+  atualizacoes[`agendamentos/${mesAnoAtual}/disponibilidades/${usuarioAgenda.uid}/nome`] = usuarioAgenda.nome;
+  database.ref().update(atualizacoes);
+  pendenciasSlots = {};
+}
+
+// --- DEFINIR DATA (MESTRE) ---
+function confirmarDefinicaoData() {
+  const dia = parseInt(document.getElementById('agenda-definir-dia').value);
+  const hora = document.getElementById('agenda-definir-hora').value;
+  if (!dia || !hora) return alert('Escolha o dia e o horário!');
+
+  const [ano, mes] = mesAnoAtual.split('-');
+  const dataEscolhida = `${ano}-${mes}-${String(dia).padStart(2, '0')}`;
+
+  const confirmacoesIniciais = {};
+  Object.keys((agendamentoAtual && agendamentoAtual.disponibilidades) || {}).forEach(uid => {
+    confirmacoesIniciais[uid] = 'pendente';
+  });
+
+  database.ref('agendamentos/' + mesAnoAtual).update({
+    status: 'definido',
+    dataEscolhida,
+    horario: hora,
+    confirmacoes: confirmacoesIniciais
+  });
+}
+
+// --- CONFIRMAÇÃO DE PRESENÇA ---
+function renderConfirmacaoAgenda() {
+  const dataFmt = formatarDataBRAgenda(agendamentoAtual.dataEscolhida);
+  document.getElementById('agenda-data-escolhida').innerText = `${dataFmt} às ${agendamentoAtual.horario}`;
+
+  const confirmacoes = agendamentoAtual.confirmacoes || {};
+  const disponibilidades = agendamentoAtual.disponibilidades || {};
+  const meuStatus = confirmacoes[usuarioAgenda.uid] || 'pendente';
+
+  document.getElementById('agenda-btn-confirmar-sim').classList.toggle('active', meuStatus === 'sim');
+  document.getElementById('agenda-btn-confirmar-nao').classList.toggle('active', meuStatus === 'nao');
+
+  const lista = document.getElementById('agenda-lista-confirmacoes');
+  const uids = Object.keys(confirmacoes);
+  lista.innerHTML = uids.map(uid => {
+    const nome = (disponibilidades[uid] && disponibilidades[uid].nome) || 'Jogador';
+    const status = confirmacoes[uid];
+    const rotulo = status === 'sim' ? '✅ Confirmado' : status === 'nao' ? '❌ Não vai' : '⏳ Pendente';
+    const classe = status === 'sim' ? 'sim' : status === 'nao' ? 'nao' : 'pendente';
+    return `<li class="confirmacao-item ${classe}"><span>${nome}</span><span>${rotulo}</span></li>`;
+  }).join('');
+}
+
+function responderConfirmacaoAgenda(resposta) {
+  database.ref(`agendamentos/${mesAnoAtual}/confirmacoes/${usuarioAgenda.uid}`).set(resposta);
+}
+
+function formatarDataBRAgenda(dataISO) {
+  const [ano, mes, dia] = dataISO.split('-');
+  return `${dia}/${mes}/${ano}`;
 }

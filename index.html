@@ -9,6 +9,7 @@
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="script.js" defer></script>
 </head>
 <body>
@@ -36,6 +37,110 @@
         <label for="input-gm-pass">Senha do Mestre:</label>
         <input type="password" id="input-gm-pass" placeholder="Digite a senha do Mestre">
         <button type="button" class="btn-primary btn-large" onclick="entrarComoMestre()">Acessar Painel do Mestre</button>
+      </div>
+
+      <button type="button" class="btn-agenda-link" onclick="mostrarTela('screen-agenda')">📅 Agendamento de Sessões</button>
+    </div>
+  </div>
+
+  <!-- TELA DE AGENDAMENTO DE SESSÕES -->
+  <div id="screen-agenda" class="screen-container">
+    <div class="top-nav-bar">
+      <h2>📅 Agendamento de Sessões</h2>
+      <button type="button" class="btn-danger" onclick="mostrarTela('screen-select')">← Voltar</button>
+    </div>
+
+    <!-- LOGIN / CADASTRO -->
+    <div id="agenda-auth" class="agenda-auth-wrap">
+      <div class="select-box" style="width: 380px;">
+        <div class="mode-toggle">
+          <button type="button" id="agenda-auth-btn-login" class="btn-mode active" onclick="alternarAuthTab('login')">Entrar</button>
+          <button type="button" id="agenda-auth-btn-cadastro" class="btn-mode" onclick="alternarAuthTab('cadastro')">Criar Conta</button>
+        </div>
+
+        <div id="agenda-form-login" class="access-panel active">
+          <label>Email:</label>
+          <input type="email" id="agenda-login-email" placeholder="seu@email.com">
+          <label>Senha:</label>
+          <input type="password" id="agenda-login-senha" placeholder="Sua senha">
+          <button type="button" class="btn-primary btn-large" onclick="loginAgenda()">Entrar</button>
+        </div>
+
+        <div id="agenda-form-cadastro" class="access-panel">
+          <label>Seu nome:</label>
+          <input type="text" id="agenda-cadastro-nome" placeholder="Como quer aparecer pro grupo">
+          <label>Email:</label>
+          <input type="email" id="agenda-cadastro-email" placeholder="seu@email.com">
+          <label>Senha:</label>
+          <input type="password" id="agenda-cadastro-senha" placeholder="Mínimo 6 caracteres">
+          <button type="button" class="btn-primary btn-large" onclick="criarContaAgenda()">Criar Conta</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- APP DE AGENDAMENTO (LOGADO) -->
+    <div id="agenda-app" class="agenda-app-wrap" style="display:none;">
+      <div class="agenda-app-header">
+        <div>Logado como <strong id="agenda-user-nome"></strong></div>
+        <div class="agenda-mes-nav">
+          <button type="button" class="btn-sub" onclick="mudarMesAgenda(-1)">‹</button>
+          <span id="agenda-mes-label"></span>
+          <button type="button" class="btn-sub" onclick="mudarMesAgenda(1)">›</button>
+        </div>
+        <button type="button" class="btn-danger" onclick="logoutAgenda()">Sair da Conta</button>
+      </div>
+
+      <!-- PAINEL DO MESTRE -->
+      <div id="agenda-gm-panel" class="agenda-gm-panel" style="display:none;">
+        <button type="button" id="agenda-btn-abrir-votacao" class="btn-success" onclick="abrirVotacaoAgenda()" style="display:none;">Abrir Votação de Disponibilidade Deste Mês</button>
+        <button type="button" id="agenda-btn-cancelar-ciclo" class="btn-danger" onclick="cancelarCicloAgenda()" style="display:none;">Cancelar / Reiniciar Ciclo Deste Mês</button>
+      </div>
+
+      <!-- SEM CICLO ABERTO -->
+      <p id="agenda-sem-ciclo" style="display:none; color:#a8a8b3; margin-top:15px;">Ainda não há votação de disponibilidade aberta para este mês. Aguarde o Mestre abrir.</p>
+
+      <!-- GRADE DE DISPONIBILIDADE -->
+      <div id="agenda-grade-wrap" style="display:none; margin-top:15px;">
+        <div class="agenda-grade-controles">
+          <button type="button" id="agenda-btn-modo-editar" class="sub-tab-btn active" onclick="alternarModoGrade('editar')">✏️ Minha Disponibilidade</button>
+          <button type="button" id="agenda-btn-modo-heatmap" class="sub-tab-btn" onclick="alternarModoGrade('heatmap')">🔥 Mapa de Calor</button>
+        </div>
+        <p class="agenda-dica">Clique e arraste sobre os horários livres. Toque e arraste no celular.</p>
+
+        <div id="agenda-legenda-jogadores" class="agenda-legenda" style="display:none;"></div>
+
+        <div class="agenda-grade-scroll">
+          <table class="agenda-grade-tabela">
+            <thead><tr id="agenda-grade-thead"></tr></thead>
+            <tbody id="agenda-grade-tbody"></tbody>
+          </table>
+        </div>
+
+        <!-- PAINEL DEFINIR DATA (MESTRE) -->
+        <div id="agenda-definir-painel" class="agenda-definir-painel" style="display:none;">
+          <h4>Definir Data da Sessão</h4>
+          <p id="agenda-definir-info">Clique numa célula do mapa de calor para escolher o horário, ou preencha manualmente.</p>
+          <div class="agenda-definir-campos">
+            <label>Dia: <input type="number" id="agenda-definir-dia" min="1" max="31"></label>
+            <label>Horário: <input type="time" id="agenda-definir-hora"></label>
+          </div>
+          <button type="button" class="btn-success" onclick="confirmarDefinicaoData()">Definir Esta Data</button>
+        </div>
+      </div>
+
+      <!-- CONFIRMAÇÃO DA DATA ESCOLHIDA -->
+      <div id="agenda-confirmacao-wrap" style="display:none; margin-top:15px;">
+        <div class="agenda-data-card">
+          <h3>Sessão marcada para:</h3>
+          <p id="agenda-data-escolhida" class="agenda-data-destaque"></p>
+          <div class="agenda-confirmar-botoes">
+            <button type="button" id="agenda-btn-confirmar-sim" class="btn-success" onclick="responderConfirmacaoAgenda('sim')">✅ Confirmo Presença</button>
+            <button type="button" id="agenda-btn-confirmar-nao" class="btn-danger" onclick="responderConfirmacaoAgenda('nao')">❌ Não Vou Poder</button>
+          </div>
+        </div>
+        <h4 style="margin-top:15px;">Status do Grupo:</h4>
+        <ul id="agenda-lista-confirmacoes" class="agenda-lista-confirmacoes"></ul>
+        <button type="button" id="agenda-btn-cancelar-ciclo-2" class="btn-danger" style="display:none; margin-top:15px;" onclick="cancelarCicloAgenda()">Cancelar / Reiniciar Ciclo Deste Mês</button>
       </div>
     </div>
   </div>
