@@ -155,8 +155,17 @@
       </div>
     </div>
     
-    <h2>{ FICHAS DOS JOGADORES }</h2>
-    <div class="gm-cards-grid" id="gm-cards-list"></div>
+    <h2>{ FICHAS }</h2>
+
+    <!-- CRIAR NOVA FICHA (monstro, NPC, inimigo, aliado...) -->
+    <div class="gm-nova-ficha">
+      <strong>+ Nova Ficha:</strong>
+      <input type="text" id="gm-nova-ficha-nome" placeholder="Nome / ID (ex: goblin 1)">
+      <select id="gm-nova-ficha-categoria"></select>
+      <button type="button" class="btn-success" onclick="mestreCriarFicha()">Criar e Abrir</button>
+    </div>
+
+    <div id="gm-cards-list"></div>
 
     <!-- GERENCIADOR DE EFEITOS GLOBAIS -->
     <div class="gm-effects-builder">
@@ -230,7 +239,7 @@
     
     <div class="top-nav-bar">
       <div>
-        <button type="button" class="btn-sub" onclick="voltarParaSelecao()">← Trocar Ficha / Sair</button>
+        <button type="button" class="btn-sub" id="btn-sair-ficha" onclick="sairDaFicha()">← Trocar Ficha / Sair</button>
         <button type="button" class="btn-success" style="margin-left: 10px;" onclick="passarTurnoJogador()">⏳ Passar Turno</button>
       </div>
       <span class="ficha-label" id="label-ficha-ativa">Editando Ficha: Nenhuma</span>
@@ -239,6 +248,15 @@
 
     <!-- CABEÇALHO DA FICHA -->
     <header class="ficha-header">
+      <div class="ficha-header-layout">
+        <div class="ficha-foto-wrap">
+          <div class="ficha-foto" id="ficha-foto-box" title="Clique para escolher uma foto" onclick="document.getElementById('ficha-foto-input').click()">
+            <img id="ficha-foto-img" alt="Foto do personagem" style="display:none;">
+            <span id="ficha-foto-placeholder">📷<br><small>Adicionar foto</small></span>
+          </div>
+          <input type="file" id="ficha-foto-input" accept="image/*" style="display:none;" onchange="escolherFotoFicha(this)">
+          <button type="button" class="btn-sub ficha-foto-remover" id="ficha-foto-remover" style="display:none;" onclick="removerFotoFicha()">Remover foto</button>
+        </div>
       <div class="header-grid">
         <div class="field field-medium">
           <label>Classe Base:</label>
@@ -299,6 +317,7 @@
           <label>Traumas / Medos:</label>
           <input type="text" id="traumas" value="Voltar à Vida" onchange="salvarDados()">
         </div>
+      </div>
       </div>
     </header>
 

@@ -21,6 +21,30 @@ let idFichaAtual = null;
 let éMestre = false;
 let escutandoFirebaseRef = null;
 
+// --- CATEGORIAS DE FICHAS (PAINEL DO MESTRE) ---
+const CATEGORIAS_FICHA = [
+  { id: 'player',  nome: 'Players',             icone: '🧙', cor: '#00e1ff' },
+  { id: 'aliado',  nome: 'Aliados dos Players', icone: '🤝', cor: '#00ff88' },
+  { id: 'npc',     nome: 'NPCs',                icone: '💬', cor: '#ffcc00' },
+  { id: 'inimigo', nome: 'Inimigos',            icone: '⚔️', cor: '#ff4655' },
+  { id: 'monstro', nome: 'Monstros',            icone: '👹', cor: '#c77dff' }
+];
+const CATEGORIA_PADRAO = 'player'; // fichas antigas, sem categoria, aparecem como Players
+
+let refPainelMestre = null;
+let fichasPainel = {};
+let renderPainelPendente = false;
+let categoriasRecolhidas = new Set();
+try {
+  categoriasRecolhidas = new Set(JSON.parse(localStorage.getItem('categoriasRecolhidas') || '[]'));
+} catch (e) { /* sem localStorage: tudo bem, só não lembra */ }
+
+function escaparHtml(texto) {
+  return String(texto ?? '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 const periciasLista = [
   "Acrobacia", "Arcanismo", "Adestramento", "Artes", "Atletismo", "Atualidades", "Ciência",
   "Diplomacia", "Enganação", "Furto", "Fortitude", "Furtividade", "Historia", "Iniciativa",
@@ -80,12 +104,16 @@ const tabelaClassePadrao = {
 };
 
 let timerDebounce = null;
+let debouncePendente = false;
 
 window.onload = () => {
   popularOpcoesBuff();
   renderPericias();
   renderizarSlots();
   escutarEfeitosGlobais();
+
+  popularCategoriasNovaFicha();
+  iniciarEventosPainelMestre();
 
   const telaFicha = document.getElementById('screen-sheet');
 
@@ -99,7 +127,9 @@ window.onload = () => {
   telaFicha.addEventListener('input', (e) => {
     if (e.target.closest('#modal-xp') || e.target.closest('#modal-edit-item')) return;
     clearTimeout(timerDebounce);
+    debouncePendente = true;
     timerDebounce = setTimeout(() => {
+      debouncePendente = false;
       recalcularTudo(true);
     }, 600); 
   });
@@ -127,11 +157,34 @@ function mostrarTela(screenId) {
   document.getElementById(screenId).classList.add('active');
 }
 
+// Salva a última edição caso o usuário saia da ficha antes do salvamento automático (600ms)
+function salvarPendenteAntesDeSair() {
+  if (debouncePendente) {
+    clearTimeout(timerDebounce);
+    debouncePendente = false;
+    recalcularTudo(true);
+  }
+}
+
 function voltarParaSelecao() {
-  if (escutandoFirebaseRef) escutandoFirebaseRef.off();
+  salvarPendenteAntesDeSair();
+  if (escutandoFirebaseRef) { escutandoFirebaseRef.off(); escutandoFirebaseRef = null; }
+  if (refPainelMestre) { refPainelMestre.off(); refPainelMestre = null; }
   idFichaAtual = null;
   éMestre = false;
   mostrarTela('screen-select');
+}
+
+// Botão "voltar" dentro da ficha: o mestre volta pro Painel do Mestre (sem pedir senha de novo);
+// o jogador volta pra tela inicial.
+function sairDaFicha() {
+  if (!éMestre) return voltarParaSelecao();
+
+  salvarPendenteAntesDeSair();
+  if (escutandoFirebaseRef) { escutandoFirebaseRef.off(); escutandoFirebaseRef = null; }
+  idFichaAtual = null;
+  mostrarTela('screen-gm-dashboard');
+  renderPainelMestre();
 }
 
 // --- ACESSO DO JOGADOR ---
@@ -144,6 +197,7 @@ function entrarComoJogador() {
   document.getElementById('badge-gm-view').style.display = 'none';
   document.querySelectorAll('.gm-status-control').forEach(el => el.style.display = 'none');
   document.getElementById('label-ficha-ativa').innerText = `Ficha: ${idFichaAtual}`;
+  document.getElementById('btn-sair-ficha').innerText = '← Trocar Ficha / Sair';
 
   carregarFichaEConectar();
   mostrarTela('screen-sheet');
@@ -155,44 +209,167 @@ function entrarComoMestre() {
   if (senhaInput !== SENHA_MESTRE) return alert("Senha do Mestre incorreta!");
 
   éMestre = true;
+  mostrarTela('screen-gm-dashboard'); // antes de carregar, pois o painel só se desenha quando está visível
   carregarPainelMestre();
-  mostrarTela('screen-gm-dashboard');
 }
 
 function carregarPainelMestre() {
   const container = document.getElementById('gm-cards-list');
   container.innerHTML = "<p>Carregando fichas...</p>";
 
-  database.ref('fichas').on('value', (snapshot) => {
-    container.innerHTML = '';
-    const fichas = snapshot.val();
-
-    if (!fichas) {
-      container.innerHTML = "<p>Nenhuma ficha cadastrada ainda no sistema.</p>";
-      return;
-    }
-
-    Object.keys(fichas).forEach(id => {
-      const f = fichas[id];
-      container.innerHTML += `
-        <div class="gm-card">
-          <div class="gm-card-header">
-            <h3>${f.nome || id}</h3>
-            <small>ID: ${id}</small>
-          </div>
-          <div class="gm-card-stats">
-            <span>Nível: <strong>${f.nivel || 1}</strong></span>
-            <span>Classe: <strong>${f.classeBase || '-'}</strong></span>
-            <span>PV: <strong>${f.pvAtual || 0} / ${f.pvMax || 0}</strong></span>
-            <span>PE: <strong>${f.peAtual || 0} / ${f.peMax || 0}</strong></span>
-            <span>SAN: <strong>${f.sanAtual || 0} / ${f.sanMax || 0}</strong></span>
-            <span>MA: <strong>${f.maAtual || 0} / ${f.maMax || 0}</strong></span>
-          </div>
-          <button class="btn-primary" onclick="mestreAbrirFicha('${id}')">👁️ Abrir / Editar Ficha</button>
-        </div>
-      `;
-    });
+  if (refPainelMestre) refPainelMestre.off();
+  refPainelMestre = database.ref('fichas');
+  refPainelMestre.on('value', (snapshot) => {
+    fichasPainel = snapshot.val() || {};
+    renderPainelMestre();
   });
+}
+
+function popularCategoriasNovaFicha() {
+  const sel = document.getElementById('gm-nova-ficha-categoria');
+  if (!sel) return;
+  sel.innerHTML = CATEGORIAS_FICHA.map(c => `<option value="${c.id}">${c.icone} ${c.nome}</option>`).join('');
+  sel.value = 'monstro';
+}
+
+function htmlCardFicha(id, f, categoriaAtual) {
+  const foto = (typeof f.foto === 'string' && f.foto.startsWith('data:image/')) ? f.foto : '';
+  const avatar = foto
+    ? `<img class="gm-card-foto" src="${escaparHtml(foto)}" alt="">`
+    : `<div class="gm-card-foto gm-card-foto-vazia">👤</div>`;
+  const opcoes = CATEGORIAS_FICHA.map(c =>
+    `<option value="${c.id}" ${c.id === categoriaAtual ? 'selected' : ''}>${c.icone} ${c.nome}</option>`
+  ).join('');
+  const idSeguro = escaparHtml(id);
+
+  return `
+    <div class="gm-card">
+      <div class="gm-card-topo">
+        ${avatar}
+        <div class="gm-card-header">
+          <h3>${escaparHtml(f.nome || id)}</h3>
+          <small>ID: ${idSeguro}</small>
+        </div>
+      </div>
+      <div class="gm-card-stats">
+        <span>Nível: <strong>${escaparHtml(f.nivel || 1)}</strong></span>
+        <span>Classe: <strong>${escaparHtml(f.classeBase || '-')}</strong></span>
+        <span>PV: <strong>${escaparHtml(f.pvAtual || 0)} / ${escaparHtml(f.pvMax || 0)}</strong></span>
+        <span>PE: <strong>${escaparHtml(f.peAtual || 0)} / ${escaparHtml(f.peMax || 0)}</strong></span>
+        <span>SAN: <strong>${escaparHtml(f.sanAtual || 0)} / ${escaparHtml(f.sanMax || 0)}</strong></span>
+        <span>MA: <strong>${escaparHtml(f.maAtual || 0)} / ${escaparHtml(f.maMax || 0)}</strong></span>
+      </div>
+      <label class="gm-card-categoria">Categoria:
+        <select class="gm-select-categoria" data-id="${idSeguro}">${opcoes}</select>
+      </label>
+      <button type="button" class="btn-primary gm-btn-abrir" data-id="${idSeguro}">👁️ Abrir / Editar Ficha</button>
+    </div>`;
+}
+
+function renderPainelMestre() {
+  const container = document.getElementById('gm-cards-list');
+  const tela = document.getElementById('screen-gm-dashboard');
+  if (!container || !tela) return;
+
+  // Não redesenha com o painel escondido, nem enquanto o mestre está com um menu de categoria aberto
+  const ativo = document.activeElement;
+  const selectAberto = ativo && ativo.tagName === 'SELECT' && container.contains(ativo);
+  if (!tela.classList.contains('active') || selectAberto) {
+    renderPainelPendente = true;
+    return;
+  }
+  renderPainelPendente = false;
+
+  const ids = Object.keys(fichasPainel);
+  if (ids.length === 0) {
+    container.innerHTML = "<p>Nenhuma ficha cadastrada ainda no sistema.</p>";
+    return;
+  }
+
+  const porCategoria = {};
+  CATEGORIAS_FICHA.forEach(c => porCategoria[c.id] = []);
+  ids.forEach(id => {
+    const f = fichasPainel[id] || {};
+    const cat = porCategoria[f.categoria] ? f.categoria : CATEGORIA_PADRAO;
+    porCategoria[cat].push(id);
+  });
+
+  let html = '';
+  CATEGORIAS_FICHA.forEach(cat => {
+    const lista = porCategoria[cat.id];
+    if (lista.length === 0) return;
+
+    lista.sort((a, b) =>
+      String((fichasPainel[a] || {}).nome || a).localeCompare(String((fichasPainel[b] || {}).nome || b), 'pt-BR')
+    );
+
+    html += `
+      <section class="gm-categoria ${categoriasRecolhidas.has(cat.id) ? 'recolhida' : ''}" style="--cor-cat:${cat.cor}">
+        <div class="gm-categoria-titulo" data-cat="${cat.id}">
+          <span>${cat.icone} ${cat.nome}</span>
+          <span class="gm-categoria-contagem">${lista.length}</span>
+          <span class="gm-categoria-seta">▾</span>
+        </div>
+        <div class="gm-cards-grid">
+          ${lista.map(id => htmlCardFicha(id, fichasPainel[id] || {}, cat.id)).join('')}
+        </div>
+      </section>`;
+  });
+
+  container.innerHTML = html;
+}
+
+function iniciarEventosPainelMestre() {
+  const container = document.getElementById('gm-cards-list');
+  if (!container) return;
+
+  container.addEventListener('click', (e) => {
+    const btn = e.target.closest('.gm-btn-abrir');
+    if (btn) return mestreAbrirFicha(btn.dataset.id);
+
+    const titulo = e.target.closest('.gm-categoria-titulo');
+    if (titulo) {
+      const cat = titulo.dataset.cat;
+      if (categoriasRecolhidas.has(cat)) categoriasRecolhidas.delete(cat);
+      else categoriasRecolhidas.add(cat);
+      titulo.closest('.gm-categoria').classList.toggle('recolhida', categoriasRecolhidas.has(cat));
+      try { localStorage.setItem('categoriasRecolhidas', JSON.stringify([...categoriasRecolhidas])); } catch (err) {}
+    }
+  });
+
+  container.addEventListener('change', (e) => {
+    const sel = e.target.closest('.gm-select-categoria');
+    if (!sel) return;
+    sel.blur(); // fecha o foco pra o painel poder se reorganizar na hora
+    mestreMudarCategoria(sel.dataset.id, sel.value);
+  });
+
+  container.addEventListener('focusout', () => {
+    if (renderPainelPendente) setTimeout(renderPainelMestre, 0);
+  });
+}
+
+function mestreMudarCategoria(id, categoria) {
+  database.ref('fichas/' + id + '/categoria').set(categoria);
+}
+
+function mestreCriarFicha() {
+  const nomeOriginal = document.getElementById('gm-nova-ficha-nome').value.trim();
+  const categoria = document.getElementById('gm-nova-ficha-categoria').value;
+  if (!nomeOriginal) return alert("Digite um nome para a nova ficha!");
+
+  // O ID segue o mesmo padrão dos jogadores (minúsculo), sem caracteres que o Firebase não aceita em chaves
+  const id = nomeOriginal.toLowerCase().replace(/[.#$\[\]\/]/g, '-');
+
+  database.ref('fichas/' + id).once('value')
+    .then(snap => {
+      if (snap.exists()) return alert(`Já existe uma ficha com o ID "${id}". Escolha outro nome.`);
+      return database.ref('fichas/' + id).set({ nome: nomeOriginal, categoria }).then(() => {
+        document.getElementById('gm-nova-ficha-nome').value = '';
+        mestreAbrirFicha(id);
+      });
+    })
+    .catch(err => alert("Não foi possível criar a ficha: " + err.message));
 }
 
 function mestreAbrirFicha(idFicha) {
@@ -201,6 +378,7 @@ function mestreAbrirFicha(idFicha) {
   document.getElementById('badge-gm-view').style.display = 'inline-block';
   document.querySelectorAll('.gm-status-control').forEach(el => el.style.display = 'flex');
   document.getElementById('label-ficha-ativa').innerText = `Editando Ficha: ${idFichaAtual}`;
+  document.getElementById('btn-sair-ficha').innerText = '← Voltar ao Painel do Mestre';
 
   carregarFichaEConectar();
   mostrarTela('screen-sheet');
@@ -209,6 +387,7 @@ function mestreAbrirFicha(idFicha) {
 // --- SINCRONIZAÇÃO EM TEMPO REAL COM FIREBASE ---
 function carregarFichaEConectar() {
   if (escutandoFirebaseRef) escutandoFirebaseRef.off();
+  atualizarFotoFicha(null); // limpa a foto da ficha anterior até a nova carregar
 
   escutandoFirebaseRef = database.ref('fichas/' + idFichaAtual);
   escutandoFirebaseRef.on('value', (snapshot) => {
@@ -233,6 +412,7 @@ function atualizarCampoSeInativo(idElemento, valorNovo) {
 }
 
 function aplicarDadosFicha(data) {
+  atualizarFotoFicha(data.foto);
   atualizarCampoSeInativo('nome', data.nome || idFichaAtual);
   atualizarCampoSeInativo('nivel', data.nivel || 1);
   expAtual = data.expAtual || 0;
@@ -1321,6 +1501,8 @@ function mestrePassarTurnoGeral() {
     Object.keys(fichas).forEach(id => {
       let f = fichas[id];
       f = processarTurnoFichaObjeto(f);
+      delete f.foto;      // não reenvia a imagem (já está no banco)
+      delete f.categoria; // nem a categoria
       database.ref('fichas/' + id).update(f);
     });
 
@@ -1415,10 +1597,13 @@ function aplicarRecursoNoCampo(recurso, delta) {
   let elMax = document.getElementById(idMax);
 
   if (elAtual) {
-    let valAtual = parseInt(elAtual.value) || 0;
+    let valAtual = parseInt(elAtual.value) || 0; // Lê corretamente valores negativos como -20
     let valMax = elMax ? (parseInt(elMax.value) || 9999) : 9999;
-    let novoVal = Math.min(valMax, Math.max(0, valAtual + delta));
+    
+    // Permite que suba ou desça a partir do valor atual (inclusive negativo) respeitando o teto máximo, sem traviar em 0 no piso se o personagem já estiver com saldo negativo
+    let novoVal = Math.min(valMax, valAtual + delta); 
     elAtual.value = novoVal;
+    salvarDados();
   }
 }
 
@@ -1509,6 +1694,86 @@ function removerBlocoAnotacao(id) {
   blocosAnotacoes = blocosAnotacoes.filter(b => b.id !== id);
   renderBlocosAnotacoes();
   salvarDados();
+}
+
+// ==========================================================================
+// FOTO DO PERSONAGEM
+// A imagem é reduzida no navegador (máx. 400px) e guardada como texto dentro da
+// própria ficha no Realtime Database, então não precisa de Firebase Storage.
+// ==========================================================================
+const FOTO_MAX_LADO = 400;
+const FOTO_MAX_BYTES = 150 * 1024;
+
+function atualizarFotoFicha(foto) {
+  const img = document.getElementById('ficha-foto-img');
+  const placeholder = document.getElementById('ficha-foto-placeholder');
+  const btnRemover = document.getElementById('ficha-foto-remover');
+  if (!img || !placeholder || !btnRemover) return;
+
+  const valida = typeof foto === 'string' && foto.startsWith('data:image/');
+  if (valida) {
+    img.src = foto;
+    img.style.display = 'block';
+    placeholder.style.display = 'none';
+    btnRemover.style.display = 'inline-block';
+  } else {
+    img.removeAttribute('src');
+    img.style.display = 'none';
+    placeholder.style.display = 'flex';
+    btnRemover.style.display = 'none';
+  }
+}
+
+function escolherFotoFicha(input) {
+  const arquivo = input.files && input.files[0];
+  input.value = ''; // permite escolher o mesmo arquivo de novo depois
+  if (!arquivo) return;
+  if (!idFichaAtual) return alert("Abra uma ficha antes de adicionar a foto.");
+  if (!arquivo.type.startsWith('image/')) return alert("Escolha um arquivo de imagem (JPG, PNG, WEBP...).");
+
+  const leitor = new FileReader();
+  leitor.onerror = () => alert("Não consegui ler esse arquivo.");
+  leitor.onload = () => {
+    const img = new Image();
+    img.onerror = () => alert("Não consegui abrir essa imagem. Tente outro arquivo.");
+    img.onload = () => {
+      const escala = Math.min(1, FOTO_MAX_LADO / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * escala));
+      const h = Math.max(1, Math.round(img.height * escala));
+
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#121214'; // PNG transparente vira JPEG com fundo escuro
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+
+      // Base64 ocupa ~37% a mais que os bytes reais; vai baixando a qualidade até caber
+      let qualidade = 0.85;
+      let dataUrl = canvas.toDataURL('image/jpeg', qualidade);
+      while (dataUrl.length > FOTO_MAX_BYTES * 1.37 && qualidade > 0.35) {
+        qualidade -= 0.1;
+        dataUrl = canvas.toDataURL('image/jpeg', qualidade);
+      }
+      salvarFotoFicha(dataUrl);
+    };
+    img.src = leitor.result;
+  };
+  leitor.readAsDataURL(arquivo);
+}
+
+function salvarFotoFicha(dataUrl) {
+  if (!idFichaAtual) return;
+  salvarDados(); // garante que a ficha exista com o que está na tela antes de anexar a foto
+  database.ref('fichas/' + idFichaAtual).update({ foto: dataUrl })
+    .catch(err => alert("Não foi possível salvar a foto: " + err.message));
+}
+
+function removerFotoFicha() {
+  if (!idFichaAtual) return;
+  if (!confirm("Remover a foto deste personagem?")) return;
+  database.ref('fichas/' + idFichaAtual + '/foto').remove();
 }
 
 // ==========================================================================
