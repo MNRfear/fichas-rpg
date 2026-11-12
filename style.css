@@ -494,3 +494,25 @@ textarea:focus {
 .gm-select-categoria {
   flex: 1; background: #121214; border: 1px solid #29292e; color: #fff; padding: 5px; border-radius: 4px; font-size: 0.85rem;
 }
+/* ==========================================================================
+   TELA DE SELEÇÃO DE CAMPANHAS
+   ========================================================================== */
+#screen-campaign-select {
+  background: radial-gradient(circle, #1f1f23 0%, #121214 100%);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  min-height: 100vh;
+}
+#screen-campaign-select.active {
+  display: flex;
+}
+
+.campaign-item-card {
+  transition: 0.2s;
+}
+.campaign-item-card:hover {
+  border-color: #ff4655;
+  transform: translateY(-2px);
+}
