@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sistema de Fichas RPG</title>
-  <link rel="stylesheet" href="style.css?v=104">
+  <link rel="stylesheet" href="style.css?v=103">
   
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -27,11 +27,6 @@
 
       <!-- PAINEL JOGADOR -->
       <div id="panel-player" class="access-panel active">
-        <label for="input-player-campanha">Campanha:</label>
-        <select id="input-player-campanha">
-          <option value="campanha-1">Campanha 1</option>
-        </select>
-
         <label for="input-player-id">Nome do Personagem / ID:</label>
         <input type="text" id="input-player-id" placeholder="Ex: Morpheus, Ronaldo, etc">
         <button type="button" class="btn-primary btn-large" onclick="entrarComoJogador()">Carregar / Criar Ficha</button>
@@ -45,26 +40,6 @@
       </div>
 
       <button type="button" class="btn-agenda-link" onclick="mostrarTela('screen-agenda')">📅 Agendamento de Sessões</button>
-    </div>
-  </div>
-
-  <!-- TELA DE SELEÇÃO DE CAMPANHAS (MESTRE) -->
-  <div id="screen-campaign-select" class="screen-container">
-    <div class="select-box" style="width: 480px;">
-      <h1>GERENCIAMENTO DE CAMPANHAS</h1>
-      <p>Selecione uma campanha existente ou crie uma nova</p>
-
-      <div class="gm-nova-ficha" style="margin-bottom: 20px;">
-        <strong>+ Nova Campanha:</strong>
-        <input type="text" id="input-nova-campanha-nome" placeholder="Nome da Campanha (ex: Campanha 2)">
-        <button type="button" class="btn-success" onclick="criarCampanha()">Criar Campanha</button>
-      </div>
-
-      <div id="lista-campanhas-gm" class="campaign-list" style="margin-bottom: 20px; max-height: 250px; overflow-y: auto;">
-        <!-- Lista de campanhas carregadas do Firebase -->
-      </div>
-
-      <button type="button" class="btn-danger btn-large" onclick="voltarParaSelecao()">Sair / Trocar Senha</button>
     </div>
   </div>
 
@@ -175,12 +150,10 @@
     <div class="gm-header">
       <h2>Painel de Controle do Mestre</h2>
       <div class="gm-header-actions">
-        <button type="button" class="btn-sub" onclick="voltarParaSelecaoCampanhas()">← Trocar Campanha</button>
         <button type="button" class="btn-success" onclick="mestrePassarTurnoGeral()">⏳ Passar Turno de Todos</button>
         <button type="button" class="btn-danger" onclick="voltarParaSelecao()">Sair</button>
       </div>
     </div>
-    <p id="label-campanha-ativa" style="color: #00ff88; font-size: 0.95rem; margin-top: -10px; margin-bottom: 10px;"></p>
     
     <h2>{ FICHAS }</h2>
 
@@ -651,7 +624,7 @@
     </div>
   </div>
 
-  <!-- MODAL DE EDIÇÃO DE ITEM -->
+  <!-- MODAL DE EDIÇÃO DE ITEM (REQUISITO 3) -->
   <div id="modal-edit-item" class="modal-overlay">
     <div class="modal-box modal-box-large">
       <h3>Editar Item</h3>

@@ -18,8 +18,6 @@ const auth = firebase.auth();
 const SENHA_MESTRE = "2510";
 
 let idFichaAtual = null;
-let idCampanhaAtual = 'campanha-1';
-let nomeCampanhaAtual = 'Campanha 1';
 let éMestre = false;
 let escutandoFirebaseRef = null;
 
@@ -31,7 +29,7 @@ const CATEGORIAS_FICHA = [
   { id: 'inimigo', nome: 'Inimigos',            icone: '⚔️', cor: '#ff4655' },
   { id: 'monstro', nome: 'Monstros',            icone: '👹', cor: '#c77dff' }
 ];
-const CATEGORIA_PADRAO = 'player';
+const CATEGORIA_PADRAO = 'player'; // fichas antigas, sem categoria, aparecem como Players
 
 let refPainelMestre = null;
 let fichasPainel = {};
@@ -39,7 +37,7 @@ let renderPainelPendente = false;
 let categoriasRecolhidas = new Set();
 try {
   categoriasRecolhidas = new Set(JSON.parse(localStorage.getItem('categoriasRecolhidas') || '[]'));
-} catch (e) { }
+} catch (e) { /* sem localStorage: tudo bem, só não lembra */ }
 
 function escaparHtml(texto) {
   return String(texto ?? '')
@@ -66,9 +64,14 @@ let buffsTempGmEffect = [];
 let efeitosGlobaisSalvos = {};
 let defesasEspecificas = { perfuracao:0, queimadura:0, corte:0, impacto:0, balistico:0, eletricidade:0, fogo:0, frio:0, acido:0, veneno:0, magico:0 };
 let expAtual = 0;
+
+// REQUISITO 2: Modificadores permanentes do Mestre para todos os status
 let modPermMestre = { pv: 0, san: 0, pe: 0, ma: 0 };
+
+// VARIÁVEL DE APOIO PARA EDITAR ITEM
 let itemEditando = null;
 
+// --- DADOS DOS SLOTS DE MAGIA ---
 let slotsAtuais = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 
 const tabelaDND = [
@@ -108,13 +111,9 @@ window.onload = () => {
   renderPericias();
   renderizarSlots();
   escutarEfeitosGlobais();
+
   popularCategoriasNovaFicha();
   iniciarEventosPainelMestre();
-
-  // Verifica migração das fichas antigas para Campanha 1 e carrega o select de campanhas
-  verificarEMigrarCampanhas().then(() => {
-    carregarCampanhasParaSelect();
-  });
 
   const telaFicha = document.getElementById('screen-sheet');
 
@@ -136,40 +135,7 @@ window.onload = () => {
   });
 };
 
-// --- MIGRAÇÃO AUTOMÁTICA PARA CAMPANHAS (OTIMIZADA) ---
-function verificarEMigrarCampanhas() {
-  return database.ref('campanhas').once('value').then(snapshot => {
-    if (!snapshot.exists()) {
-      // Cria a estrutura base da Campanha 1 sem duplicar as fotos pesadas de uma vez
-      return database.ref('campanhas/campanha-1').set({
-        nome: 'Campanha 1'
-      }).then(() => {
-        // Copia as fichas básicas (sem fotos pesadas se houver estouro, ou copia em lote seguro)
-        return database.ref('fichas').once('value');
-      }).then(fichasSnap => {
-        if (fichasSnap.exists()) {
-          return database.ref('campanhas/campanha-1/fichas').set(fichasSnap.val());
-        }
-      }).catch(err => {
-        console.warn("Aviso na migração automática (pode ignorar se já criado):", err);
-      });
-    }
-  });
-}
-
-function carregarCampanhasParaSelect() {
-  database.ref('campanhas').on('value', (snapshot) => {
-    const campanhas = snapshot.val() || { 'campanha-1': { nome: 'Campanha 1' } };
-    const select = document.getElementById('input-player-campanha');
-    if (!select) return;
-    select.innerHTML = Object.keys(campanhas).map(id => {
-      const camp = campanhas[id];
-      return `<option value="${id}">${escaparHtml(camp.nome || id)}</option>`;
-    }).join('');
-  });
-}
-
-// --- SINCRONIZAÇÃO DE EFEITOS GLOBAIS ---
+// --- SINCRONIZAÇÃO DE EFEITOS GLOBAIS (BANCO DE DADOS) ---
 function escutarEfeitosGlobais() {
   database.ref('efeitosGlobais').on('value', (snapshot) => {
     efeitosGlobaisSalvos = snapshot.val() || {};
@@ -191,6 +157,7 @@ function mostrarTela(screenId) {
   document.getElementById(screenId).classList.add('active');
 }
 
+// Salva a última edição caso o usuário saia da ficha antes do salvamento automático (600ms)
 function salvarPendenteAntesDeSair() {
   if (debouncePendente) {
     clearTimeout(timerDebounce);
@@ -208,6 +175,8 @@ function voltarParaSelecao() {
   mostrarTela('screen-select');
 }
 
+// Botão "voltar" dentro da ficha: o mestre volta pro Painel do Mestre (sem pedir senha de novo);
+// o jogador volta pra tela inicial.
 function sairDaFicha() {
   if (!éMestre) return voltarParaSelecao();
 
@@ -218,21 +187,11 @@ function sairDaFicha() {
   renderPainelMestre();
 }
 
-function voltarParaSelecaoCampanhas() {
-  salvarPendenteAntesDeSair();
-  if (refPainelMestre) { refPainelMestre.off(); refPainelMestre = null; }
-  if (escutandoFirebaseRef) { escutandoFirebaseRef.off(); escutandoFirebaseRef = null; }
-  carregarListaCampanhasGM();
-  mostrarTela('screen-campaign-select');
-}
-
 // --- ACESSO DO JOGADOR ---
 function entrarComoJogador() {
   const inputID = document.getElementById('input-player-id').value.trim().toLowerCase();
-  const selectCamp = document.getElementById('input-player-campanha');
   if (!inputID) return alert("Por favor, digite o nome/ID do seu personagem!");
 
-  idCampanhaAtual = selectCamp ? selectCamp.value : 'campanha-1';
   idFichaAtual = inputID;
   éMestre = false;
   document.getElementById('badge-gm-view').style.display = 'none';
@@ -244,68 +203,22 @@ function entrarComoJogador() {
   mostrarTela('screen-sheet');
 }
 
-// --- ACESSO DO MESTRE & GERENCIAMENTO DE CAMPANHAS ---
+// --- ACESSO DO MESTRE ---
 function entrarComoMestre() {
   const senhaInput = document.getElementById('input-gm-pass').value;
   if (senhaInput !== SENHA_MESTRE) return alert("Senha do Mestre incorreta!");
 
-  verificarEMigrarCampanhas().then(() => {
-    document.getElementById('input-gm-pass').value = '';
-    carregarListaCampanhasGM();
-    mostrarTela('screen-campaign-select');
-  });
-}
-
-function carregarListaCampanhasGM() {
-  database.ref('campanhas').on('value', (snapshot) => {
-    const campanhas = snapshot.val() || { 'campanha-1': { nome: 'Campanha 1' } };
-    const container = document.getElementById('lista-campanhas-gm');
-    if (!container) return;
-
-    container.innerHTML = Object.keys(campanhas).map(id => {
-      const c = campanhas[id];
-      const numFichas = c.fichas ? Object.keys(c.fichas).length : 0;
-      return `
-        <div class="campaign-item-card" style="background: #202024; border: 1px solid #29292e; padding: 12px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <strong style="color: #00ff88; font-size: 1.05rem;">${escaparHtml(c.nome || id)}</strong>
-            <div style="font-size: 0.8rem; color: #a8a8b3;">ID: ${id} | Fichas: ${numFichas}</div>
-          </div>
-          <button type="button" class="btn-primary" onclick="selecionarCampanha('${id}', '${escaparHtml(c.nome || id)}')">Acessar Campanha</button>
-        </div>
-      `;
-    }).join('');
-  });
-}
-
-function criarCampanha() {
-  const inputNome = document.getElementById('input-nova-campanha-nome').value.trim();
-  if (!inputNome) return alert("Digite o nome da nova campanha!");
-
-  const novoId = 'campanha_' + Date.now();
-  database.ref(`campanhas/${novoId}`).set({
-    nome: inputNome,
-    fichas: {}
-  }).then(() => {
-    document.getElementById('input-nova-campanha-nome').value = '';
-    selecionarCampanha(novoId, inputNome);
-  }).catch(err => alert("Erro ao criar campanha: " + err.message));
-}
-
-function selecionarCampanha(id, nome) {
-  idCampanhaAtual = id;
-  nomeCampanhaAtual = nome;
-  document.getElementById('label-campanha-ativa').innerText = `Campanha Ativa: ${nomeCampanhaAtual}`;
-  mostrarTela('screen-gm-dashboard');
+  éMestre = true;
+  mostrarTela('screen-gm-dashboard'); // antes de carregar, pois o painel só se desenha quando está visível
   carregarPainelMestre();
 }
 
 function carregarPainelMestre() {
   const container = document.getElementById('gm-cards-list');
-  container.innerHTML = "<p>Carregando fichas da campanha...</p>";
+  container.innerHTML = "<p>Carregando fichas...</p>";
 
   if (refPainelMestre) refPainelMestre.off();
-  refPainelMestre = database.ref(`campanhas/${idCampanhaAtual}/fichas`);
+  refPainelMestre = database.ref('fichas');
   refPainelMestre.on('value', (snapshot) => {
     fichasPainel = snapshot.val() || {};
     renderPainelMestre();
@@ -358,6 +271,7 @@ function renderPainelMestre() {
   const tela = document.getElementById('screen-gm-dashboard');
   if (!container || !tela) return;
 
+  // Não redesenha com o painel escondido, nem enquanto o mestre está com um menu de categoria aberto
   const ativo = document.activeElement;
   const selectAberto = ativo && ativo.tagName === 'SELECT' && container.contains(ativo);
   if (!tela.classList.contains('active') || selectAberto) {
@@ -368,7 +282,7 @@ function renderPainelMestre() {
 
   const ids = Object.keys(fichasPainel);
   if (ids.length === 0) {
-    container.innerHTML = "<p>Nenhuma ficha cadastrada ainda nesta campanha.</p>";
+    container.innerHTML = "<p>Nenhuma ficha cadastrada ainda no sistema.</p>";
     return;
   }
 
@@ -426,7 +340,7 @@ function iniciarEventosPainelMestre() {
   container.addEventListener('change', (e) => {
     const sel = e.target.closest('.gm-select-categoria');
     if (!sel) return;
-    sel.blur();
+    sel.blur(); // fecha o foco pra o painel poder se reorganizar na hora
     mestreMudarCategoria(sel.dataset.id, sel.value);
   });
 
@@ -436,7 +350,7 @@ function iniciarEventosPainelMestre() {
 }
 
 function mestreMudarCategoria(id, categoria) {
-  database.ref(`campanhas/${idCampanhaAtual}/fichas/${id}/categoria`).set(categoria);
+  database.ref('fichas/' + id + '/categoria').set(categoria);
 }
 
 function mestreCriarFicha() {
@@ -444,12 +358,13 @@ function mestreCriarFicha() {
   const categoria = document.getElementById('gm-nova-ficha-categoria').value;
   if (!nomeOriginal) return alert("Digite um nome para a nova ficha!");
 
+  // O ID segue o mesmo padrão dos jogadores (minúsculo), sem caracteres que o Firebase não aceita em chaves
   const id = nomeOriginal.toLowerCase().replace(/[.#$\[\]\/]/g, '-');
 
-  database.ref(`campanhas/${idCampanhaAtual}/fichas/${id}`).once('value')
+  database.ref('fichas/' + id).once('value')
     .then(snap => {
-      if (snap.exists()) return alert(`Já existe uma ficha com o ID "${id}" nesta campanha. Escolha outro nome.`);
-      return database.ref(`campanhas/${idCampanhaAtual}/fichas/${id}`).set({ nome: nomeOriginal, categoria }).then(() => {
+      if (snap.exists()) return alert(`Já existe uma ficha com o ID "${id}". Escolha outro nome.`);
+      return database.ref('fichas/' + id).set({ nome: nomeOriginal, categoria }).then(() => {
         document.getElementById('gm-nova-ficha-nome').value = '';
         mestreAbrirFicha(id);
       });
@@ -469,12 +384,12 @@ function mestreAbrirFicha(idFicha) {
   mostrarTela('screen-sheet');
 }
 
-// --- SINCRONIZAÇÃO DA FICHA ATUAL ---
+// --- SINCRONIZAÇÃO EM TEMPO REAL COM FIREBASE ---
 function carregarFichaEConectar() {
   if (escutandoFirebaseRef) escutandoFirebaseRef.off();
-  atualizarFotoFicha(null);
+  atualizarFotoFicha(null); // limpa a foto da ficha anterior até a nova carregar
 
-  escutandoFirebaseRef = database.ref(`campanhas/${idCampanhaAtual}/fichas/${idFichaAtual}`);
+  escutandoFirebaseRef = database.ref('fichas/' + idFichaAtual);
   escutandoFirebaseRef.on('value', (snapshot) => {
     const data = snapshot.val();
     if (data) {
@@ -502,6 +417,7 @@ function aplicarDadosFicha(data) {
   atualizarCampoSeInativo('nivel', data.nivel || 1);
   expAtual = data.expAtual || 0;
   
+  // REQUISITO 2: Carrega modificadores permanentes do Mestre para os 4 status
   modPermMestre = data.modPermMestre || { pv: 0, san: (data.modPermSanMestre || 0), pe: 0, ma: 0 };
   atualizarCampoSeInativo('pv-perm-mod', modPermMestre.pv || 0);
   atualizarCampoSeInativo('san-perm-mod', modPermMestre.san || 0);
@@ -628,7 +544,7 @@ function salvarDados() {
     dadosPericias, inventario, equipamentos, efeitos, blocosAnotacoes
   };
 
-  database.ref(`campanhas/${idCampanhaAtual}/fichas/${idFichaAtual}`).update(estadoFicha);
+  database.ref('fichas/' + idFichaAtual).update(estadoFicha);
 }
 
 // --- CONTROLE DE DEFESA ESPECÍFICA POPUP ---
@@ -800,7 +716,7 @@ function alterarPontosPericia(pericia, valor) {
   recalcularTudo();
 }
 
-// --- SLOTS DE MAGIA ---
+// --- LÓGICA DE SLOTS DE MAGIA ---
 function calcularSlotsMaximos() {
   let maximos = [0, 0, 0, 0, 0, 0, 0, 0, 0];
 
@@ -905,6 +821,7 @@ function recalcularSlotsMagia() {
   salvarDados();
 }
 
+// --- CÁLCULO DE VALOR ESCALADO DE EFEITOS ---
 function calcularEfeitoValorEscalado(valorBase, tipoEscala, fator, nivel) {
   let vBase = parseFloat(valorBase) || 0;
   let lvl = Math.max(1, parseInt(nivel) || 1);
@@ -920,6 +837,7 @@ function calcularEfeitoValorEscalado(valorBase, tipoEscala, fator, nivel) {
   return vBase;
 }
 
+// REQUISITO 2: Alterar os modificadores permanentes de qualquer status pelo Mestre
 function atualizarStatusPermMestre(recurso, val) {
   modPermMestre[recurso] = parseInt(val) || 0;
   recalcularTudo();
@@ -952,6 +870,7 @@ function recalcularTudo(deveSalvar = true) {
 
   let buffsAcumulados = {};
 
+  // ACUMULAR BUFFS DOS EQUIPAMENTOS (Apenas estáticos)
   equipamentos.forEach(item => {
     let mult = parseInt(item.qtd) || 1;
     if (item.buffs) {
@@ -963,6 +882,7 @@ function recalcularTudo(deveSalvar = true) {
     }
   });
 
+  // ACUMULAR BUFFS DOS EFEITOS DE STATUS ATIVOS
   efeitos.forEach(ef => {
     let lvl = ef.nivelAtual || 1;
     if (ef.buffs) {
@@ -981,6 +901,8 @@ function recalcularTudo(deveSalvar = true) {
   let carisma = carismaBase + (buffsAcumulados['attr-carisma'] || 0);
   let sorte = sorteBase + (buffsAcumulados['attr-sorte'] || 0);
 
+  // REQUISITO 1: Atualização dos badges visuais permitindo dados negativos progressivos (-1d, -2d, -3d, etc.)
+  // Usa os valores finais (já com os buffs de equipamentos/efeitos somados), não os valores base
   const listaAtributosFinais = [
     { id: 'forca', val: forca },
     { id: 'agilidade', val: agilidade },
@@ -1025,6 +947,7 @@ function recalcularTudo(deveSalvar = true) {
     }
   });
 
+  // REQUISITO 2: Cálculo dos Status Máximos descontando as reduções permanentes do Mestre
   let pvMaxCalc = 10 + vigor + bonusClasse.pv + (buffsAcumulados['status-pv'] || 0) - (modPermMestre.pv || 0);
   document.getElementById('pv-max').value = Math.max(0, pvMaxCalc);
   
@@ -1040,6 +963,7 @@ function recalcularTudo(deveSalvar = true) {
   document.getElementById('eva-val').value = agilidade + bonusClasse.eva + (buffsAcumulados['status-eva'] || 0);
   document.getElementById('def-val').value = Math.floor(vigor / 2) + bonusClasse.def + (buffsAcumulados['status-def'] || 0);
 
+  // ATUALIZAR DEFESAS ESPECÍFICAS
   const defsLista = ['perfuracao','queimadura','corte','impacto','balistico','eletricidade','fogo','frio','acido','veneno','magico'];
   defsLista.forEach(d => {
     let el = document.getElementById(`def-${d}`);
@@ -1058,6 +982,7 @@ function recalcularTudo(deveSalvar = true) {
   let deslocamentoFinal = Math.floor(agilidade / 2) + (buffsAcumulados['status-deslocamento'] || 0);
   document.getElementById('deslocamento-val').value = `${Math.max(0, deslocamentoFinal)}m`;
 
+  // Perícias = Inteligência + Bônus de Classe + Level - 1
   let ptsLivresTotais = inteligencia + bonusClasse.ptsLivre + (nivel - 1);
   let ptsLivresGastos = 0;
   let ptsClasseTotais = 0;
@@ -1136,7 +1061,7 @@ function recalcularTudo(deveSalvar = true) {
   let pesoProprioMochilasEquipadas = 0;
 
   equipamentos.forEach(item => {
-    let qtd = parseInt(item.qtd) || 1;
+    let qtd = parseFloat(item.qtd) || 1;
     let pesoUnitario = parseFloat(item.carga) || 0;
     if (item.mochila) {
       cargaExtraMochilas += (parseFloat(item.bonusCarga) || 0) * qtd;
@@ -1168,7 +1093,7 @@ function recalcularTudo(deveSalvar = true) {
   if (deveSalvar) salvarDados();
 }
 
-// --- ITENS ---
+// --- GERENCIAMENTO DE ITENS ---
 function criarItem() {
   let nome = document.getElementById('item-nome').value;
   let qtd = parseInt(document.getElementById('item-qtd').value) || 1;
@@ -1271,6 +1196,7 @@ function renderItens() {
   });
 }
 
+// REQUISITO 3: Modal de Edição de Itens
 function abrirModalEditItem(id, local) {
   let lista = local === 'inv' ? inventario : equipamentos;
   let item = lista.find(i => i.id === id);
@@ -1402,7 +1328,7 @@ function removerItem(id, local) {
   recalcularTudo();
 }
 
-// --- EFEITOS GLOBAIS ---
+// --- EFEITOS DE STATUS (PAINEL DO MESTRE & BANCO DE DADOS) ---
 function adicionarBuffEfeitoGmMtemp() {
   const select = document.getElementById('gm-effect-buff-alvo');
   const alvoId = select.value;
@@ -1558,7 +1484,7 @@ function removerEfeitoInstancia(idInstancia) {
   recalcularTudo();
 }
 
-// --- PASSAR TURNO ---
+// --- PASSAR TURNO & AUTOMAÇÕES ---
 function passarTurnoJogador() {
   processarPassagemDeTurnoLocal();
   salvarDados();
@@ -1566,21 +1492,21 @@ function passarTurnoJogador() {
 }
 
 function mestrePassarTurnoGeral() {
-  if (!confirm("Deseja passar o turno de TODOS os jogadores desta campanha?")) return;
+  if (!confirm("Deseja passar o turno de TODOS os jogadores salvos no banco?")) return;
 
-  database.ref(`campanhas/${idCampanhaAtual}/fichas`).once('value', (snapshot) => {
+  database.ref('fichas').once('value', (snapshot) => {
     const fichas = snapshot.val();
-    if (!fichas) return alert("Nenhuma ficha encontrada nesta campanha.");
+    if (!fichas) return alert("Nenhuma ficha encontrada.");
 
     Object.keys(fichas).forEach(id => {
       let f = fichas[id];
       f = processarTurnoFichaObjeto(f);
-      delete f.foto;
-      delete f.categoria;
-      database.ref(`campanhas/${idCampanhaAtual}/fichas/${id}`).update(f);
+      delete f.foto;      // não reenvia a imagem (já está no banco)
+      delete f.categoria; // nem a categoria
+      database.ref('fichas/' + id).update(f);
     });
 
-    alert("Turno de todas as fichas da campanha foi processado com sucesso!");
+    alert("Turno de todas as fichas foi processado com sucesso!");
   });
 }
 
@@ -1671,8 +1597,10 @@ function aplicarRecursoNoCampo(recurso, delta) {
   let elMax = document.getElementById(idMax);
 
   if (elAtual) {
-    let valAtual = parseInt(elAtual.value) || 0;
+    let valAtual = parseInt(elAtual.value) || 0; // Lê corretamente valores negativos como -20
     let valMax = elMax ? (parseInt(elMax.value) || 9999) : 9999;
+    
+    // Permite que suba ou desça a partir do valor atual (inclusive negativo) respeitando o teto máximo, sem traviar em 0 no piso se o personagem já estiver com saldo negativo
     let novoVal = Math.min(valMax, valAtual + delta); 
     elAtual.value = novoVal;
     salvarDados();
@@ -1688,7 +1616,7 @@ function modificarRecursoObjeto(f, recurso, delta) {
   f[chaveAtual] = Math.min(valMax, Math.max(0, valAtual + delta));
 }
 
-// --- ANOTAÇÕES ---
+// --- BLOCOS DE ANOTAÇÕES ---
 function criarBlocoAnotacao() {
   blocosAnotacoes.push({ id: Date.now(), titulo: "Nova Anotação", texto: "" });
   renderBlocosAnotacoes();
@@ -1699,6 +1627,7 @@ function renderBlocosAnotacoes() {
   const container = document.getElementById('container-anotacoes');
   if (!container) return;
 
+  // Remove do DOM apenas os cards de blocos que não existem mais (não apaga tudo)
   const idsAtuais = new Set(blocosAnotacoes.map(b => String(b.id)));
   Array.from(container.children).forEach(card => {
     if (!idsAtuais.has(card.dataset.id)) card.remove();
@@ -1708,6 +1637,7 @@ function renderBlocosAnotacoes() {
     let card = container.querySelector(`.bloco-card[data-id="${b.id}"]`);
 
     if (!card) {
+      // Cria o card apenas se ele ainda não existir no DOM
       card = document.createElement('div');
       card.className = 'bloco-card';
       card.dataset.id = b.id;
@@ -1721,6 +1651,7 @@ function renderBlocosAnotacoes() {
       const textareaTexto = card.querySelector('.bloco-texto');
       const btnExcluir = card.querySelector('.btn-danger');
 
+      // 'input' atualiza a cada tecla digitada (não perde nada se você clicar em outro lugar antes do blur)
       inputTitulo.addEventListener('input', () => atualizarTituloAnotacao(b.id, inputTitulo.value));
       textareaTexto.addEventListener('input', () => atualizarTextoAnotacao(b.id, textareaTexto.value));
       btnExcluir.addEventListener('click', () => removerBlocoAnotacao(b.id));
@@ -1728,11 +1659,14 @@ function renderBlocosAnotacoes() {
       container.appendChild(card);
     }
 
+    // Garante a ordem correta no grid sem recriar os cards que não mudaram de posição
     const posAtual = Array.from(container.children).indexOf(card);
     if (posAtual !== idx) {
       container.insertBefore(card, container.children[idx] || null);
     }
 
+    // Só sobrescreve o valor se o campo não for o que está em edição no momento
+    // (evita apagar o que a pessoa está digitando quando o Firebase sincroniza)
     const inputTitulo = card.querySelector('.bloco-titulo');
     const textareaTexto = card.querySelector('.bloco-texto');
     if (document.activeElement !== inputTitulo) inputTitulo.value = b.titulo;
@@ -1762,7 +1696,11 @@ function removerBlocoAnotacao(id) {
   salvarDados();
 }
 
-// --- FOTO DO PERSONAGEM ---
+// ==========================================================================
+// FOTO DO PERSONAGEM
+// A imagem é reduzida no navegador (máx. 400px) e guardada como texto dentro da
+// própria ficha no Realtime Database, então não precisa de Firebase Storage.
+// ==========================================================================
 const FOTO_MAX_LADO = 400;
 const FOTO_MAX_BYTES = 150 * 1024;
 
@@ -1788,7 +1726,7 @@ function atualizarFotoFicha(foto) {
 
 function escolherFotoFicha(input) {
   const arquivo = input.files && input.files[0];
-  input.value = '';
+  input.value = ''; // permite escolher o mesmo arquivo de novo depois
   if (!arquivo) return;
   if (!idFichaAtual) return alert("Abra uma ficha antes de adicionar a foto.");
   if (!arquivo.type.startsWith('image/')) return alert("Escolha um arquivo de imagem (JPG, PNG, WEBP...).");
@@ -1807,10 +1745,11 @@ function escolherFotoFicha(input) {
       canvas.width = w;
       canvas.height = h;
       const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#121214';
+      ctx.fillStyle = '#121214'; // PNG transparente vira JPEG com fundo escuro
       ctx.fillRect(0, 0, w, h);
       ctx.drawImage(img, 0, 0, w, h);
 
+      // Base64 ocupa ~37% a mais que os bytes reais; vai baixando a qualidade até caber
       let qualidade = 0.85;
       let dataUrl = canvas.toDataURL('image/jpeg', qualidade);
       while (dataUrl.length > FOTO_MAX_BYTES * 1.37 && qualidade > 0.35) {
@@ -1826,31 +1765,36 @@ function escolherFotoFicha(input) {
 
 function salvarFotoFicha(dataUrl) {
   if (!idFichaAtual) return;
-  salvarDados();
-  database.ref(`campanhas/${idCampanhaAtual}/fichas/${idFichaAtual}`).update({ foto: dataUrl })
+  salvarDados(); // garante que a ficha exista com o que está na tela antes de anexar a foto
+  database.ref('fichas/' + idFichaAtual).update({ foto: dataUrl })
     .catch(err => alert("Não foi possível salvar a foto: " + err.message));
 }
 
 function removerFotoFicha() {
   if (!idFichaAtual) return;
   if (!confirm("Remover a foto deste personagem?")) return;
-  database.ref(`campanhas/${idCampanhaAtual}/fichas/${idFichaAtual}/foto`).remove();
+  database.ref('fichas/' + idFichaAtual + '/foto').remove();
 }
 
-// --- AGENDAMENTO DE SESSÕES ---
-const AGENDA_HORA_INICIO = 10;
-const AGENDA_HORA_FIM = 24;
-const AGENDA_INTERVALO_MIN = 30;
+// ==========================================================================
+// AGENDAMENTO DE SESSÕES
+// ==========================================================================
+
+// --- CONFIGURAÇÃO DA GRADE ---
+const AGENDA_HORA_INICIO = 10;   // grade começa às 10:00
+const AGENDA_HORA_FIM = 24;      // grade termina às 23:30 (exclusivo)
+const AGENDA_INTERVALO_MIN = 30; // blocos de 30 em 30 minutos
 const AGENDA_CORES_JOGADORES = ['#ff4655', '#00e1ff', '#00ff88', '#ffcc00', '#c77dff', '#ff8f40', '#4dd0e1', '#f06292'];
 
-let usuarioAgenda = null;
-let mesAnoAtual = null;
+let usuarioAgenda = null;        // { uid, nome, role }
+let mesAnoAtual = null;          // "2026-09"
 let refAgendamentoAtual = null;
 let agendamentoAtual = null;
 let modoGradeView = 'editar';
 let jogadoresDestacados = new Set();
 let pendenciasSlots = {};
 
+// --- LOGIN / CADASTRO ---
 function alternarAuthTab(tipo) {
   document.getElementById('agenda-form-login').classList.toggle('active', tipo === 'login');
   document.getElementById('agenda-form-cadastro').classList.toggle('active', tipo === 'cadastro');
@@ -1920,6 +1864,7 @@ function atualizarUIAuthAgenda() {
   }
 }
 
+// --- NAVEGAÇÃO DE MÊS ---
 function iniciarMesAgenda() {
   if (!mesAnoAtual) {
     const hoje = new Date();
@@ -1970,6 +1915,7 @@ function gerarSlotsHorarioAgenda() {
   return slots;
 }
 
+// --- RENDER PRINCIPAL (decide qual seção mostrar) ---
 function renderAgendaMes() {
   if (!usuarioAgenda) return;
   const status = agendamentoAtual ? agendamentoAtual.status : null;
@@ -1982,6 +1928,7 @@ function renderAgendaMes() {
   document.getElementById('agenda-btn-abrir-votacao').style.display = (!agendamentoAtual && éMestreAgenda) ? 'inline-block' : 'none';
   document.getElementById('agenda-btn-cancelar-ciclo').style.display = (agendamentoAtual && éMestreAgenda && status === 'coletando') ? 'inline-block' : 'none';
   document.getElementById('agenda-btn-cancelar-ciclo-2').style.display = (agendamentoAtual && éMestreAgenda && (status === 'definido' || status === 'confirmado')) ? 'inline-block' : 'none';
+
   document.getElementById('agenda-definir-painel').style.display = (status === 'coletando' && éMestreAgenda) ? 'block' : 'none';
 
   if (status === 'coletando') {
@@ -1991,6 +1938,7 @@ function renderAgendaMes() {
   }
 }
 
+// --- CICLO DO MESTRE ---
 function abrirVotacaoAgenda() {
   if (agendamentoAtual) return;
   database.ref('agendamentos/' + mesAnoAtual).set({
@@ -2004,6 +1952,7 @@ function cancelarCicloAgenda() {
   database.ref('agendamentos/' + mesAnoAtual).remove();
 }
 
+// --- GRADE DE DISPONIBILIDADE ---
 function alternarModoGrade(modo) {
   modoGradeView = modo;
   document.getElementById('agenda-btn-modo-editar').classList.toggle('active', modo === 'editar');
@@ -2093,6 +2042,7 @@ function renderLegendaJogadoresAgenda(disponibilidades) {
   });
 }
 
+// --- INTERAÇÃO DE PINTURA (arrastar pra marcar disponibilidade) ---
 function inicializarInteracaoGradeAgenda() {
   const tbody = document.getElementById('agenda-grade-tbody');
   if (!tbody) return;
@@ -2143,14 +2093,19 @@ function inicializarInteracaoGradeAgenda() {
     if (td) alternarCelula(td, modoMarcar);
   }, { passive: false });
 
+  // Mestre clicando numa célula do mapa de calor pra pré-preencher o painel "Definir Data"
   tbody.addEventListener('click', (e) => {
     if (modoGradeView !== 'heatmap' || !usuarioAgenda || usuarioAgenda.role !== 'mestre') return;
-    const td = e.target.closest('.grade-cel-heat');
+    const td = alvoCelula2Heat(e.target);
     if (!td) return;
     document.getElementById('agenda-definir-dia').value = td.dataset.dia;
     document.getElementById('agenda-definir-hora').value = td.dataset.hora;
     document.getElementById('agenda-definir-info').innerText = `Livres neste horário: ${td.title || 'ninguém ainda'}`;
   });
+
+  function alvoCelula2Heat(el) {
+    return el && el.closest ? el.closest('.grade-cel-heat') : null;
+  }
 
   function finalizarPintura() {
     if (!pintando) return;
@@ -2174,6 +2129,7 @@ function salvarDisponibilidadeAgenda() {
   pendenciasSlots = {};
 }
 
+// --- DEFINIR DATA (MESTRE) ---
 function confirmarDefinicaoData() {
   const dia = parseInt(document.getElementById('agenda-definir-dia').value);
   const hora = document.getElementById('agenda-definir-hora').value;
@@ -2195,6 +2151,7 @@ function confirmarDefinicaoData() {
   });
 }
 
+// --- CONFIRMAÇÃO DE PRESENÇA ---
 function renderConfirmacaoAgenda() {
   const dataFmt = formatarDataBRAgenda(agendamentoAtual.dataEscolhida);
   document.getElementById('agenda-data-escolhida').innerText = `${dataFmt} às ${agendamentoAtual.horario}`;
