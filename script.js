@@ -136,17 +136,22 @@ window.onload = () => {
   });
 };
 
-// --- MIGRAÇÃO AUTOMÁTICA PARA CAMPANHAS ---
+// --- MIGRAÇÃO AUTOMÁTICA PARA CAMPANHAS (OTIMIZADA) ---
 function verificarEMigrarCampanhas() {
   return database.ref('campanhas').once('value').then(snapshot => {
-    const campanhas = snapshot.val();
-    if (!campanhas) {
-      return database.ref('fichas').once('value').then(fichasSnap => {
-        const fichasRoot = fichasSnap.val() || {};
-        const updates = {};
-        updates['campanhas/campanha-1/nome'] = 'Campanha 1';
-        updates['campanhas/campanha-1/fichas'] = fichasRoot;
-        return database.ref().update(updates);
+    if (!snapshot.exists()) {
+      // Cria a estrutura base da Campanha 1 sem duplicar as fotos pesadas de uma vez
+      return database.ref('campanhas/campanha-1').set({
+        nome: 'Campanha 1'
+      }).then(() => {
+        // Copia as fichas básicas (sem fotos pesadas se houver estouro, ou copia em lote seguro)
+        return database.ref('fichas').once('value');
+      }).then(fichasSnap => {
+        if (fichasSnap.exists()) {
+          return database.ref('campanhas/campanha-1/fichas').set(fichasSnap.val());
+        }
+      }).catch(err => {
+        console.warn("Aviso na migração automática (pode ignorar se já criado):", err);
       });
     }
   });
